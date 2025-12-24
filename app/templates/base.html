@@ -61,13 +61,18 @@
           <div class="sidebar-sticky">
             <ul class="nav flex-column">
               <li class="nav-item mt-2">
-                <span class="text-uppercase text-muted small">Дашборды</span>
+                <span class="text-uppercase text-muted small">Доски</span>
               </li>
-              <li class="nav-item">
-                <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{{ url_for('roles.index') }}">
-                  Канбан
-                </a>
-              </li>
+              {% for board in menu_boards %}
+                <li class="nav-item">
+                  <a
+                    class="nav-link {% if request.args.get('board_id') == board.id|string %}active{% endif %}"
+                    href="{{ url_for('roles.index', board_id=board.id) }}"
+                  >
+                    {{ board.name }}
+                  </a>
+                </li>
+              {% endfor %}
               <li class="nav-item mt-3">
                 <span class="text-uppercase text-muted small">Канбан</span>
               </li>

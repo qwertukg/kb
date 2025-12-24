@@ -13,6 +13,8 @@ bp = Blueprint("roles", __name__)
 @bp.get("/")
 def index() -> str:
     session = SessionLocal()
+    board_id = request.args.get("board_id", type=int)
+    current_board_name = None
     statuses = (
         session.execute(
             select(Status)
@@ -22,7 +24,14 @@ def index() -> str:
         .scalars()
         .all()
     )
-    tasks = session.execute(select(Task).order_by(Task.id)).scalars().all()
+    if board_id:
+        statuses = [status for status in statuses if status.board_id == board_id]
+        board = session.get(Board, board_id)
+        current_board_name = board.name if board else None
+    task_query = select(Task).order_by(Task.id)
+    if board_id:
+        task_query = task_query.where(Task.board_id == board_id)
+    tasks = session.execute(task_query).scalars().all()
 
     tasks_by_status: dict[int, list[tuple[Task, Agent | None]]] = {}
     free_agents_by_status: dict[int, list[Agent]] = {}
@@ -44,6 +53,7 @@ def index() -> str:
         statuses_by_board=statuses_by_board,
         tasks_by_status=tasks_by_status,
         free_agents_by_status=free_agents_by_status,
+        current_board_name=current_board_name,
     )
 
 

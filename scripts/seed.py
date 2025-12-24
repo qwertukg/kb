@@ -27,7 +27,8 @@ def main() -> None:
         clear_data(session)
 
         board = Board(name="Проект по выращиванию динозавров")
-        session.add(board)
+        board_lab = Board(name="Лаборатория генетики")
+        session.add_all([board, board_lab])
         session.flush()
 
         statuses = [
@@ -35,6 +36,9 @@ def main() -> None:
             Status(name="Разработка", position=2, color="#198754", board_id=board.id),
             Status(name="Тестирование", position=3, color="#fd7e14", board_id=board.id),
             Status(name="Эксплуатация", position=4, color="#dc3545", board_id=board.id),
+            Status(name="Исследование", position=1, color="#6f42c1", board_id=board_lab.id),
+            Status(name="Эксперимент", position=2, color="#20c997", board_id=board_lab.id),
+            Status(name="Отчет", position=3, color="#0dcaf0", board_id=board_lab.id),
         ]
         session.add_all(statuses)
 
@@ -63,13 +67,14 @@ def main() -> None:
         session.add_all(roles)
         session.flush()
 
-        status_by_name = {status.name: status for status in statuses}
+        status_by_name = {(status.board_id, status.name): status for status in statuses}
         role_by_name = {role.name: role for role in roles}
 
         agent_specs = [
             (
                 "Александр Сафонов",
                 "Аналитик",
+                board.id,
                 "Анализ",
                 "Разработка",
                 "Анализ",
@@ -79,6 +84,7 @@ def main() -> None:
             (
                 "Петр Власов",
                 "Аналитик",
+                board.id,
                 "Анализ",
                 "Разработка",
                 "Анализ",
@@ -88,6 +94,7 @@ def main() -> None:
             (
                 "Николай Титов",
                 "Java разработчик",
+                board.id,
                 "Разработка",
                 "Тестирование",
                 "Анализ",
@@ -97,6 +104,7 @@ def main() -> None:
             (
                 "Виталий Орлов",
                 "Java разработчик",
+                board.id,
                 "Разработка",
                 "Тестирование",
                 "Анализ",
@@ -106,6 +114,7 @@ def main() -> None:
             (
                 "Елена Морозова",
                 "Тестировщик",
+                board.id,
                 "Тестирование",
                 "Тестирование",
                 "Разработка",
@@ -115,6 +124,7 @@ def main() -> None:
             (
                 "Ирина Лебедева",
                 "Тестировщик",
+                board.id,
                 "Тестирование",
                 "Тестирование",
                 "Разработка",
@@ -124,6 +134,7 @@ def main() -> None:
             (
                 "Иван Платонов",
                 "Эксплуатация",
+                board.id,
                 "Эксплуатация",
                 "Тестирование",
                 "Разработка",
@@ -133,16 +144,48 @@ def main() -> None:
             (
                 "Сергей Кузнецов",
                 "Девопс",
+                board.id,
                 "Эксплуатация",
                 "Тестирование",
                 "Разработка",
                 "Настроен CI/CD, готово окружение.",
                 "Переданы шаблоны инфраструктуры и мониторинг.",
             ),
+            (
+                "Мария Соколова",
+                "Аналитик",
+                board_lab.id,
+                "Исследование",
+                "Эксперимент",
+                "Отчет",
+                "Собраны требования по биобезопасности.",
+                "Переданы протоколы наблюдений.",
+            ),
+            (
+                "Артем Власов",
+                "Java разработчик",
+                board_lab.id,
+                "Эксперимент",
+                "Отчет",
+                "Исследование",
+                "Автоматизированы протоколы фиксации данных.",
+                "Переданы скрипты и инструкции.",
+            ),
+            (
+                "Полина Юдина",
+                "Тестировщик",
+                board_lab.id,
+                "Отчет",
+                "Отчет",
+                "Эксперимент",
+                "Согласованы критерии верификации экспериментов.",
+                "Подготовлены результаты испытаний.",
+            ),
         ]
         for (
             name,
             role_name,
+            board_id,
             working,
             success,
             error,
@@ -153,30 +196,33 @@ def main() -> None:
                 Agent(
                     name=name,
                     role_id=role_by_name[role_name].id,
-                    board_id=board.id,
-                    working_status_id=status_by_name[working].id,
-                    success_status_id=status_by_name[success].id,
-                    error_status_id=status_by_name[error].id,
+                    board_id=board_id,
+                    working_status_id=status_by_name[(board_id, working)].id,
+                    success_status_id=status_by_name[(board_id, success)].id,
+                    error_status_id=status_by_name[(board_id, error)].id,
                     acceptance_criteria=acceptance,
                     transfer_criteria=transfer,
                 )
             )
 
         task_specs = [
-            ("Сбор требований по инкубаторам", "Анализ"),
-            ("Описание бизнес-процессов выращивания", "Анализ"),
-            ("Реализация сервиса расписаний кормления", "Разработка"),
-            ("Интеграция датчиков температуры", "Разработка"),
-            ("Стабилизация мониторинга и алертов", "Эксплуатация"),
-            ("Регрессия: цикл инкубации", "Тестирование"),
-            ("Смоук: контроль температуры и влажности", "Тестирование"),
+            ("Сбор требований по инкубаторам", board.id, "Анализ"),
+            ("Описание бизнес-процессов выращивания", board.id, "Анализ"),
+            ("Реализация сервиса расписаний кормления", board.id, "Разработка"),
+            ("Интеграция датчиков температуры", board.id, "Разработка"),
+            ("Стабилизация мониторинга и алертов", board.id, "Эксплуатация"),
+            ("Регрессия: цикл инкубации", board.id, "Тестирование"),
+            ("Смоук: контроль температуры и влажности", board.id, "Тестирование"),
+            ("План экспериментов по скорости роста", board_lab.id, "Исследование"),
+            ("Настройка датчиков ДНК-контроля", board_lab.id, "Эксперимент"),
+            ("Отчет по устойчивости эмбрионов", board_lab.id, "Отчет"),
         ]
-        for description, status_name in task_specs:
+        for description, task_board_id, status_name in task_specs:
             session.add(
                 Task(
                     description=description,
-                    board_id=board.id,
-                    status_id=status_by_name[status_name].id,
+                    board_id=task_board_id,
+                    status_id=status_by_name[(task_board_id, status_name)].id,
                 )
             )
 
