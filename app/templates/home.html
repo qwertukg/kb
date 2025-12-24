@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Канбан</h1>
+  </div>
+
+  {% if statuses_by_board %}
+    {% for board_id, statuses in statuses_by_board.items() %}
+      {% set board_name = statuses[0].board.name if statuses else "Доска" %}
+      <div class="mb-4">
+        <h2 class="h5 mb-3">{{ board_name }}</h2>
+        <div class="row g-3">
+          {% for status in statuses %}
+            <div class="col-12 col-md-4 col-lg-3">
+              <div class="card shadow-sm h-100">
+                <div class="card-header d-flex align-items-center gap-2">
+                  <span class="d-inline-block rounded-circle" style="width: 10px; height: 10px; background: {{ status.color }};"></span>
+                  <div class="fw-semibold">{{ status.name }}</div>
+                </div>
+                <div class="card-body">
+                  {% set free_agents = free_agents_by_status.get(status.id, []) %}
+                  {% if free_agents %}
+                    <div class="d-flex flex-wrap gap-2">
+                      {% for agent in free_agents %}
+                        <span class="badge bg-secondary">{{ agent.name }}</span>
+                      {% endfor %}
+                    </div>
+                  {% else %}
+                    <div class="text-muted small">Нет агентов</div>
+                  {% endif %}
+                  <hr class="my-3">
+                  {% set assigned_tasks = tasks_by_status.get(status.id, []) %}
+                  {% if assigned_tasks %}
+                    <div class="fw-semibold small text-muted mb-2">Задачи</div>
+                    <div class="d-grid gap-2">
+                      {% for task, agent in assigned_tasks %}
+                        <div class="card">
+                          <div class="card-body">
+                            <div class="mb-2">{{ task.description }}</div>
+                            {% if agent %}
+                              <span class="badge bg-info text-dark">{{ agent.name }}</span>
+                            {% else %}
+                              <span class="text-muted small">Нет свободного агента</span>
+                            {% endif %}
+                          </div>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  {% else %}
+                    <div class="text-muted small">Задач нет</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="text-muted">Статусов пока нет.</div>
+  {% endif %}
+{% endblock %}

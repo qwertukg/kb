@@ -23,6 +23,16 @@
           >
         </div>
         <div class="mb-3">
+          <label class="form-label" for="role_id">Роль</label>
+          <select class="form-select" id="role_id" name="role_id" required>
+            <option value="">Выберите роль</option>
+            {% for role in roles %}
+              {% set selected = (role_id is defined and role_id and role_id|int == role.id) or (agent and role.id == agent.role_id) %}
+              <option value="{{ role.id }}" data-instruction="{{ role.instruction or '' }}" {% if selected %}selected{% endif %}>{{ role.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
           <label class="form-label" for="board_id">Доска</label>
           <select class="form-select" id="board_id" name="board_id" required>
             <option value="">Выберите доску</option>
@@ -35,33 +45,35 @@
         <div class="row g-3 mb-3">
           <div class="col-md-4">
             <label class="form-label" for="error_status_id">Статус ошибки</label>
-            <select class="form-select border-danger text-danger" id="error_status_id" name="error_status_id" required>
+            <select class="form-select" id="error_status_id" name="error_status_id" required>
               <option value="">Выберите статус</option>
               {% for status in statuses %}
                 {% set selected = (error_status_id is defined and error_status_id and error_status_id|int == status.id) or (agent and status.id == agent.error_status_id) %}
-                <option value="{{ status.id }}" data-board-id="{{ status.board_id }}" {% if selected %}selected{% endif %}>
+                <option value="{{ status.id }}" data-board-id="{{ status.board_id }}" data-color="{{ status.color }}" {% if selected %}selected{% endif %}>
                   {{ status.name }} ({{ status.board.name }})
                 </option>
               {% endfor %}
             </select>
           </div>
           <div class="col-md-4">
-            <label class="form-label" for="role_id">Роль</label>
-            <select class="form-select" id="role_id" name="role_id" required>
-              <option value="">Выберите роль</option>
-              {% for role in roles %}
-                {% set selected = (role_id is defined and role_id and role_id|int == role.id) or (agent and role.id == agent.role_id) %}
-                <option value="{{ role.id }}" data-instruction="{{ role.instruction or '' }}" {% if selected %}selected{% endif %}>{{ role.name }}</option>
+            <label class="form-label" for="working_status_id">Рабочий статус</label>
+            <select class="form-select" id="working_status_id" name="working_status_id" required>
+              <option value="">Выберите статус</option>
+              {% for status in statuses %}
+                {% set selected = (working_status_id is defined and working_status_id and working_status_id|int == status.id) or (agent and status.id == agent.working_status_id) %}
+                <option value="{{ status.id }}" data-board-id="{{ status.board_id }}" data-color="{{ status.color }}" {% if selected %}selected{% endif %}>
+                  {{ status.name }} ({{ status.board.name }})
+                </option>
               {% endfor %}
             </select>
           </div>
           <div class="col-md-4">
             <label class="form-label" for="success_status_id">Статус успеха</label>
-            <select class="form-select border-success text-success" id="success_status_id" name="success_status_id" required>
+            <select class="form-select" id="success_status_id" name="success_status_id" required>
               <option value="">Выберите статус</option>
               {% for status in statuses %}
                 {% set selected = (success_status_id is defined and success_status_id and success_status_id|int == status.id) or (agent and status.id == agent.success_status_id) %}
-                <option value="{{ status.id }}" data-board-id="{{ status.board_id }}" {% if selected %}selected{% endif %}>
+                <option value="{{ status.id }}" data-board-id="{{ status.board_id }}" data-color="{{ status.color }}" {% if selected %}selected{% endif %}>
                   {{ status.name }} ({{ status.board.name }})
                 </option>
               {% endfor %}
@@ -92,6 +104,7 @@
     const boardSelect = document.getElementById("board_id");
     const successSelect = document.getElementById("success_status_id");
     const errorSelect = document.getElementById("error_status_id");
+    const workingSelect = document.getElementById("working_status_id");
     const updateInstruction = () => {
       const option = roleSelect.options[roleSelect.selectedIndex];
       const instruction = option?.dataset?.instruction || "";
@@ -119,12 +132,30 @@
       }
       select.disabled = !boardId;
     };
+    const applyStatusColor = (select) => {
+      const option = select.options[select.selectedIndex];
+      const color = option?.dataset?.color;
+      if (color) {
+        select.style.borderColor = color;
+        select.style.color = color;
+      } else {
+        select.style.borderColor = "";
+        select.style.color = "";
+      }
+    };
     const updateStatuses = () => {
       filterStatusOptions(successSelect);
       filterStatusOptions(errorSelect);
+      filterStatusOptions(workingSelect);
+      applyStatusColor(successSelect);
+      applyStatusColor(errorSelect);
+      applyStatusColor(workingSelect);
     };
     roleSelect.addEventListener("change", updateInstruction);
     boardSelect.addEventListener("change", updateStatuses);
+    successSelect.addEventListener("change", () => applyStatusColor(successSelect));
+    errorSelect.addEventListener("change", () => applyStatusColor(errorSelect));
+    workingSelect.addEventListener("change", () => applyStatusColor(workingSelect));
     updateInstruction();
     updateStatuses();
   </script>

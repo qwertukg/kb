@@ -16,6 +16,7 @@
             <th>Доска</th>
             <th>Статус успеха</th>
             <th>Статус ошибки</th>
+            <th>Рабочий статус</th>
             <th>Критерии приемки</th>
             <th>Критерии передачи</th>
             <th class="text-end">Действия</th>
@@ -30,6 +31,7 @@
                 <td>{{ agent.board.name if agent.board else "—" }}</td>
                 <td>{{ agent.success_status.name if agent.success_status else "—" }}</td>
                 <td>{{ agent.error_status.name if agent.error_status else "—" }}</td>
+                <td>{{ agent.working_status.name if agent.working_status else "—" }}</td>
                 <td>{{ agent.acceptance_criteria or "—" }}</td>
                 <td>{{ agent.transfer_criteria or "—" }}</td>
                 <td class="text-end">
@@ -42,7 +44,7 @@
             {% endfor %}
           {% else %}
             <tr>
-              <td colspan="8" class="text-center text-muted py-4">Агентов пока нет.</td>
+              <td colspan="9" class="text-center text-muted py-4">Агентов пока нет.</td>
             </tr>
           {% endif %}
         </tbody>

@@ -47,7 +47,7 @@
     </style>
 
     <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
-      <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="{{ url_for('roles.list_roles') }}">Админка</a>
+      <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="{{ url_for('roles.index') }}">Админка</a>
       <div class="navbar-nav">
         <div class="nav-item text-nowrap">
           <span class="nav-link px-3 text-secondary">Управление</span>
@@ -61,16 +61,11 @@
           <div class="sidebar-sticky">
             <ul class="nav flex-column">
               <li class="nav-item mt-2">
-                <span class="text-uppercase text-muted small">Справочники</span>
+                <span class="text-uppercase text-muted small">Дашборды</span>
               </li>
               <li class="nav-item">
-                <a class="nav-link {% if request.path.startswith('/roles') %}active{% endif %}" href="{{ url_for('roles.list_roles') }}">
-                  Роли
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link {% if request.path.startswith('/agents') %}active{% endif %}" href="{{ url_for('roles.list_agents') }}">
-                  Агенты
+                <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{{ url_for('roles.index') }}">
+                  Канбан
                 </a>
               </li>
               <li class="nav-item mt-3">
@@ -89,6 +84,19 @@
               <li class="nav-item">
                 <a class="nav-link {% if request.path.startswith('/tasks') %}active{% endif %}" href="{{ url_for('roles.list_tasks') }}">
                   Задачи
+                </a>
+              </li>
+              <li class="nav-item mt-3">
+                <span class="text-uppercase text-muted small">Справочники</span>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.path.startswith('/roles') %}active{% endif %}" href="{{ url_for('roles.list_roles') }}">
+                  Роли
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.path.startswith('/agents') %}active{% endif %}" href="{{ url_for('roles.list_agents') }}">
+                  Агенты
                 </a>
               </li>
             </ul>

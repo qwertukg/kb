@@ -30,12 +30,18 @@ class Agent(Base):
     error_status_id: Mapped[int | None] = mapped_column(
         ForeignKey("statuses.id"), nullable=True
     )
+    working_status_id: Mapped[int | None] = mapped_column(
+        ForeignKey("statuses.id"), nullable=True
+    )
     acceptance_criteria: Mapped[str | None] = mapped_column(Text, nullable=True)
     transfer_criteria: Mapped[str | None] = mapped_column(Text, nullable=True)
     role: Mapped[Role] = relationship(back_populates="agents")
     board: Mapped[Board | None] = relationship(foreign_keys=[board_id])
     success_status: Mapped[Status | None] = relationship(foreign_keys=[success_status_id])
     error_status: Mapped[Status | None] = relationship(foreign_keys=[error_status_id])
+    working_status: Mapped[Status | None] = relationship(
+        foreign_keys=[working_status_id], back_populates="working_agents"
+    )
 
 
 class Board(Base):
@@ -57,6 +63,9 @@ class Status(Base):
     color: Mapped[str] = mapped_column(String(20), nullable=False)
     board_id: Mapped[int] = mapped_column(ForeignKey("boards.id"), nullable=False)
     board: Mapped[Board] = relationship(back_populates="statuses")
+    working_agents: Mapped[list[Agent]] = relationship(
+        back_populates="working_status", foreign_keys="Agent.working_status_id"
+    )
 
 
 class Task(Base):

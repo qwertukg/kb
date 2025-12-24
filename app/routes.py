@@ -12,7 +12,39 @@ bp = Blueprint("roles", __name__)
 
 @bp.get("/")
 def index() -> str:
-    return redirect(url_for("roles.list_roles"))
+    session = SessionLocal()
+    statuses = (
+        session.execute(
+            select(Status)
+            .options(selectinload(Status.working_agents), selectinload(Status.board))
+            .order_by(Status.board_id, Status.position)
+        )
+        .scalars()
+        .all()
+    )
+    tasks = session.execute(select(Task).order_by(Task.id)).scalars().all()
+
+    tasks_by_status: dict[int, list[tuple[Task, Agent | None]]] = {}
+    free_agents_by_status: dict[int, list[Agent]] = {}
+    statuses_by_board: dict[int, list[Status]] = {}
+    for status in statuses:
+        agents = sorted(status.working_agents, key=lambda agent: agent.name.lower())
+        status_tasks = [task for task in tasks if task.status_id == status.id]
+        assigned: list[tuple[Task, Agent | None]] = []
+        free_agents = agents.copy()
+        for task in status_tasks:
+            agent = free_agents.pop(0) if free_agents else None
+            assigned.append((task, agent))
+        tasks_by_status[status.id] = assigned
+        free_agents_by_status[status.id] = free_agents
+        statuses_by_board.setdefault(status.board_id, []).append(status)
+
+    return render_template(
+        "home.html",
+        statuses_by_board=statuses_by_board,
+        tasks_by_status=tasks_by_status,
+        free_agents_by_status=free_agents_by_status,
+    )
 
 
 @bp.get("/roles")
@@ -115,6 +147,7 @@ def list_agents() -> str:
                 selectinload(Agent.board),
                 selectinload(Agent.success_status),
                 selectinload(Agent.error_status),
+                selectinload(Agent.working_status),
             )
             .order_by(Agent.name)
         )
@@ -144,6 +177,7 @@ def create_agent() -> str:
     board_id = request.form.get("board_id", "").strip()
     success_status_id = request.form.get("success_status_id", "").strip()
     error_status_id = request.form.get("error_status_id", "").strip()
+    working_status_id = request.form.get("working_status_id", "").strip()
     acceptance_criteria = request.form.get("acceptance_criteria", "").strip() or None
     transfer_criteria = request.form.get("transfer_criteria", "").strip() or None
 
@@ -154,7 +188,14 @@ def create_agent() -> str:
         select(Status).options(selectinload(Status.board)).order_by(Status.board_id, Status.position)
     ).scalars().all()
 
-    if not name or not role_id or not board_id or not success_status_id or not error_status_id:
+    if (
+        not name
+        or not role_id
+        or not board_id
+        or not success_status_id
+        or not error_status_id
+        or not working_status_id
+    ):
         flash("Имя, роль, доска и статусы обязательны.", "danger")
         return render_template(
             "agents/form.html",
@@ -167,6 +208,7 @@ def create_agent() -> str:
             board_id=board_id,
             success_status_id=success_status_id,
             error_status_id=error_status_id,
+            working_status_id=working_status_id,
             acceptance_criteria=acceptance_criteria,
             transfer_criteria=transfer_criteria,
         )
@@ -185,6 +227,7 @@ def create_agent() -> str:
             board_id=board_id,
             success_status_id=success_status_id,
             error_status_id=error_status_id,
+            working_status_id=working_status_id,
             acceptance_criteria=acceptance_criteria,
             transfer_criteria=transfer_criteria,
         )
@@ -203,17 +246,21 @@ def create_agent() -> str:
             board_id=board_id,
             success_status_id=success_status_id,
             error_status_id=error_status_id,
+            working_status_id=working_status_id,
             acceptance_criteria=acceptance_criteria,
             transfer_criteria=transfer_criteria,
         )
 
     success_status = session.get(Status, int(success_status_id))
     error_status = session.get(Status, int(error_status_id))
+    working_status = session.get(Status, int(working_status_id))
     if (
         not success_status
         or not error_status
+        or not working_status
         or success_status.board_id != board.id
         or error_status.board_id != board.id
+        or working_status.board_id != board.id
     ):
         flash("Статусы должны принадлежать выбранной доске.", "danger")
         return render_template(
@@ -227,6 +274,7 @@ def create_agent() -> str:
             board_id=board_id,
             success_status_id=success_status_id,
             error_status_id=error_status_id,
+            working_status_id=working_status_id,
             acceptance_criteria=acceptance_criteria,
             transfer_criteria=transfer_criteria,
         )
@@ -237,6 +285,7 @@ def create_agent() -> str:
         board_id=board.id,
         success_status_id=success_status.id,
         error_status_id=error_status.id,
+        working_status_id=working_status.id,
         acceptance_criteria=acceptance_criteria,
         transfer_criteria=transfer_criteria,
     )
@@ -271,6 +320,7 @@ def update_agent(agent_id: int) -> str:
     board_id = request.form.get("board_id", "").strip()
     success_status_id = request.form.get("success_status_id", "").strip()
     error_status_id = request.form.get("error_status_id", "").strip()
+    working_status_id = request.form.get("working_status_id", "").strip()
     acceptance_criteria = request.form.get("acceptance_criteria", "").strip() or None
     transfer_criteria = request.form.get("transfer_criteria", "").strip() or None
 
@@ -286,7 +336,14 @@ def update_agent(agent_id: int) -> str:
         select(Status).options(selectinload(Status.board)).order_by(Status.board_id, Status.position)
     ).scalars().all()
 
-    if not name or not role_id or not board_id or not success_status_id or not error_status_id:
+    if (
+        not name
+        or not role_id
+        or not board_id
+        or not success_status_id
+        or not error_status_id
+        or not working_status_id
+    ):
         flash("Имя, роль, доска и статусы обязательны.", "danger")
         return render_template(
             "agents/form.html",
@@ -299,6 +356,7 @@ def update_agent(agent_id: int) -> str:
             board_id=board_id,
             success_status_id=success_status_id,
             error_status_id=error_status_id,
+            working_status_id=working_status_id,
             acceptance_criteria=acceptance_criteria,
             transfer_criteria=transfer_criteria,
         )
@@ -317,6 +375,7 @@ def update_agent(agent_id: int) -> str:
             board_id=board_id,
             success_status_id=success_status_id,
             error_status_id=error_status_id,
+            working_status_id=working_status_id,
             acceptance_criteria=acceptance_criteria,
             transfer_criteria=transfer_criteria,
         )
@@ -335,17 +394,21 @@ def update_agent(agent_id: int) -> str:
             board_id=board_id,
             success_status_id=success_status_id,
             error_status_id=error_status_id,
+            working_status_id=working_status_id,
             acceptance_criteria=acceptance_criteria,
             transfer_criteria=transfer_criteria,
         )
 
     success_status = session.get(Status, int(success_status_id))
     error_status = session.get(Status, int(error_status_id))
+    working_status = session.get(Status, int(working_status_id))
     if (
         not success_status
         or not error_status
+        or not working_status
         or success_status.board_id != board.id
         or error_status.board_id != board.id
+        or working_status.board_id != board.id
     ):
         flash("Статусы должны принадлежать выбранной доске.", "danger")
         return render_template(
@@ -359,6 +422,7 @@ def update_agent(agent_id: int) -> str:
             board_id=board_id,
             success_status_id=success_status_id,
             error_status_id=error_status_id,
+            working_status_id=working_status_id,
             acceptance_criteria=acceptance_criteria,
             transfer_criteria=transfer_criteria,
         )
@@ -368,6 +432,7 @@ def update_agent(agent_id: int) -> str:
     agent.board_id = board.id
     agent.success_status_id = success_status.id
     agent.error_status_id = error_status.id
+    agent.working_status_id = working_status.id
     agent.acceptance_criteria = acceptance_criteria
     agent.transfer_criteria = transfer_criteria
     session.commit()
