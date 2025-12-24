@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Роли</h1>
+    <a class="btn btn-primary" href="{{ url_for('roles.new_role') }}">Создать роль</a>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-striped mb-0">
+        <thead>
+          <tr>
+            <th>Имя</th>
+            <th>Инструкция</th>
+            <th class="text-end">Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if roles %}
+            {% for role in roles %}
+              <tr>
+                <td>{{ role.name }}</td>
+                <td>{{ role.instruction or "—" }}</td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('roles.edit_role', role_id=role.id) }}">Редактировать</a>
+                  <form class="d-inline" method="post" action="{{ url_for('roles.delete_role', role_id=role.id) }}" onsubmit="return confirm('Удалить роль?');">
+                    <button class="btn btn-sm btn-outline-danger" type="submit">Удалить</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="3" class="text-center text-muted py-4">Ролей пока нет.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

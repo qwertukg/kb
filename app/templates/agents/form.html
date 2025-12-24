@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% set is_edit = agent is not none %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">{{ "Редактировать" if is_edit else "Новый агент" }}</h1>
+    <a class="btn btn-outline-secondary" href="{{ url_for('roles.list_agents') }}">Назад</a>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <form method="post" action="{{ url_for('roles.update_agent', agent_id=agent.id) if is_edit else url_for('roles.create_agent') }}">
+        <div class="mb-3">
+          <label class="form-label" for="name">Имя</label>
+          <input
+            class="form-control"
+            id="name"
+            name="name"
+            type="text"
+            value="{% if name is defined %}{{ name }}{% elif agent %}{{ agent.name }}{% else %}{{ "" }}{% endif %}"
+            required
+          >
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="board_id">Доска</label>
+          <select class="form-select" id="board_id" name="board_id" required>
+            <option value="">Выберите доску</option>
+            {% for board in boards %}
+              {% set selected = (board_id is defined and board_id and board_id|int == board.id) or (agent and board.id == agent.board_id) %}
+              <option value="{{ board.id }}" {% if selected %}selected{% endif %}>{{ board.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <label class="form-label" for="error_status_id">Статус ошибки</label>
+            <select class="form-select border-danger text-danger" id="error_status_id" name="error_status_id" required>
+              <option value="">Выберите статус</option>
+              {% for status in statuses %}
+                {% set selected = (error_status_id is defined and error_status_id and error_status_id|int == status.id) or (agent and status.id == agent.error_status_id) %}
+                <option value="{{ status.id }}" data-board-id="{{ status.board_id }}" {% if selected %}selected{% endif %}>
+                  {{ status.name }} ({{ status.board.name }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="role_id">Роль</label>
+            <select class="form-select" id="role_id" name="role_id" required>
+              <option value="">Выберите роль</option>
+              {% for role in roles %}
+                {% set selected = (role_id is defined and role_id and role_id|int == role.id) or (agent and role.id == agent.role_id) %}
+                <option value="{{ role.id }}" data-instruction="{{ role.instruction or '' }}" {% if selected %}selected{% endif %}>{{ role.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="success_status_id">Статус успеха</label>
+            <select class="form-select border-success text-success" id="success_status_id" name="success_status_id" required>
+              <option value="">Выберите статус</option>
+              {% for status in statuses %}
+                {% set selected = (success_status_id is defined and success_status_id and success_status_id|int == status.id) or (agent and status.id == agent.success_status_id) %}
+                <option value="{{ status.id }}" data-board-id="{{ status.board_id }}" {% if selected %}selected{% endif %}>
+                  {{ status.name }} ({{ status.board.name }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <label class="form-label" for="acceptance_criteria">Критерии приемки</label>
+            <textarea class="form-control" id="acceptance_criteria" name="acceptance_criteria" style="height: 500px;">{% if acceptance_criteria is defined %}{{ acceptance_criteria }}{% elif agent %}{{ agent.acceptance_criteria or "" }}{% else %}{{ "" }}{% endif %}</textarea>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Инструкция роли</label>
+            <textarea class="form-control bg-light" id="role-instruction" style="height: 500px;" disabled></textarea>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="transfer_criteria">Критерии передачи</label>
+            <textarea class="form-control" id="transfer_criteria" name="transfer_criteria" style="height: 500px;">{% if transfer_criteria is defined %}{{ transfer_criteria }}{% elif agent %}{{ agent.transfer_criteria or "" }}{% else %}{{ "" }}{% endif %}</textarea>
+          </div>
+        </div>
+        <button class="btn btn-primary" type="submit">Сохранить</button>
+      </form>
+    </div>
+  </div>
+  <script>
+    const roleSelect = document.getElementById("role_id");
+    const instructionBox = document.getElementById("role-instruction");
+    const boardSelect = document.getElementById("board_id");
+    const successSelect = document.getElementById("success_status_id");
+    const errorSelect = document.getElementById("error_status_id");
+    const updateInstruction = () => {
+      const option = roleSelect.options[roleSelect.selectedIndex];
+      const instruction = option?.dataset?.instruction || "";
+      instructionBox.value = instruction || "Инструкция не задана.";
+    };
+    const filterStatusOptions = (select) => {
+      const boardId = boardSelect.value;
+      let hasVisible = false;
+      Array.from(select.options).forEach((option, index) => {
+        if (index === 0) {
+          option.hidden = false;
+          return;
+        }
+        const matches = option.dataset.boardId === boardId;
+        option.hidden = !matches;
+        if (matches) {
+          hasVisible = true;
+        }
+      });
+      if (select.selectedIndex > 0 && select.options[select.selectedIndex].hidden) {
+        select.value = "";
+      }
+      if (!boardId || !hasVisible) {
+        select.value = "";
+      }
+      select.disabled = !boardId;
+    };
+    const updateStatuses = () => {
+      filterStatusOptions(successSelect);
+      filterStatusOptions(errorSelect);
+    };
+    roleSelect.addEventListener("change", updateInstruction);
+    boardSelect.addEventListener("change", updateStatuses);
+    updateInstruction();
+    updateStatuses();
+  </script>
+{% endblock %}

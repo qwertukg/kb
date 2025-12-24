@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Статусы</h1>
+    <a class="btn btn-primary" href="{{ url_for('roles.new_status') }}">Создать статус</a>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-striped mb-0">
+        <thead>
+          <tr>
+            <th>Имя</th>
+            <th>Доска</th>
+            <th>Позиция</th>
+            <th>Цвет</th>
+            <th class="text-end">Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if statuses %}
+            {% for status in statuses %}
+              <tr>
+                <td>{{ status.name }}</td>
+                <td>{{ status.board.name }}</td>
+                <td>{{ status.position }}</td>
+                <td>
+                  <span class="d-inline-block rounded" style="width: 20px; height: 20px; background: {{ status.color }};"></span>
+                  <span class="ms-2 text-muted">{{ status.color }}</span>
+                </td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('roles.edit_status', status_id=status.id) }}">Редактировать</a>
+                  <form class="d-inline" method="post" action="{{ url_for('roles.delete_status', status_id=status.id) }}" onsubmit="return confirm('Удалить статус?');">
+                    <button class="btn btn-sm btn-outline-danger" type="submit">Удалить</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="5" class="text-center text-muted py-4">Статусов пока нет.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

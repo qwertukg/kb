@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtualenv
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+
+# Database / env
+*.db
+.env
+.env.*
+
+# Mypy / Ruff
+.mypy_cache/
+.ruff_cache/
+.pyright/
+
+# Flask
+instance/
+
+# Alembic
+alembic.ini.orig
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/

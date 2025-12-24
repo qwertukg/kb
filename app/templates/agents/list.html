@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Агенты</h1>
+    <a class="btn btn-primary" href="{{ url_for('roles.new_agent') }}">Создать агента</a>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-striped mb-0">
+        <thead>
+          <tr>
+            <th>Имя</th>
+            <th>Роль</th>
+            <th>Доска</th>
+            <th>Статус успеха</th>
+            <th>Статус ошибки</th>
+            <th>Критерии приемки</th>
+            <th>Критерии передачи</th>
+            <th class="text-end">Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if agents %}
+            {% for agent in agents %}
+              <tr>
+                <td>{{ agent.name }}</td>
+                <td>{{ agent.role.name }}</td>
+                <td>{{ agent.board.name if agent.board else "—" }}</td>
+                <td>{{ agent.success_status.name if agent.success_status else "—" }}</td>
+                <td>{{ agent.error_status.name if agent.error_status else "—" }}</td>
+                <td>{{ agent.acceptance_criteria or "—" }}</td>
+                <td>{{ agent.transfer_criteria or "—" }}</td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('roles.edit_agent', agent_id=agent.id) }}">Редактировать</a>
+                  <form class="d-inline" method="post" action="{{ url_for('roles.delete_agent', agent_id=agent.id) }}" onsubmit="return confirm('Удалить агента?');">
+                    <button class="btn btn-sm btn-outline-danger" type="submit">Удалить</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="8" class="text-center text-muted py-4">Агентов пока нет.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

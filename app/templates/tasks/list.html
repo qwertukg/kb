@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Задачи</h1>
+    <a class="btn btn-primary" href="{{ url_for('roles.new_task') }}">Создать задачу</a>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-striped mb-0">
+        <thead>
+          <tr>
+            <th>Описание</th>
+            <th>Доска</th>
+            <th>Статус</th>
+            <th class="text-end">Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if tasks %}
+            {% for task in tasks %}
+              <tr>
+                <td>{{ task.description }}</td>
+                <td>{{ task.board.name }}</td>
+                <td>{{ task.status.name }}</td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('roles.edit_task', task_id=task.id) }}">Редактировать</a>
+                  <form class="d-inline" method="post" action="{{ url_for('roles.delete_task', task_id=task.id) }}" onsubmit="return confirm('Удалить задачу?');">
+                    <button class="btn btn-sm btn-outline-danger" type="submit">Удалить</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="4" class="text-center text-muted py-4">Задач пока нет.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% set is_edit = task is not none %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">{{ "Редактировать" if is_edit else "Новая задача" }}</h1>
+    <a class="btn btn-outline-secondary" href="{{ url_for('roles.list_tasks') }}">Назад</a>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <form method="post" action="{{ url_for('roles.update_task', task_id=task.id) if is_edit else url_for('roles.create_task') }}">
+        <div class="mb-3">
+          <label class="form-label" for="description">Описание</label>
+          <textarea class="form-control" id="description" name="description" rows="6" required>{% if description is defined %}{{ description }}{% elif task %}{{ task.description }}{% else %}{{ "" }}{% endif %}</textarea>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label" for="board_id">Доска</label>
+            <select class="form-select" id="board_id" name="board_id" required>
+              <option value="">Выберите доску</option>
+              {% for board in boards %}
+                {% set selected = (board_id is defined and board_id and board_id|int == board.id) or (task and board.id == task.board_id) %}
+                <option value="{{ board.id }}" {% if selected %}selected{% endif %}>{{ board.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="status_id">Статус</label>
+            <select class="form-select" id="status_id" name="status_id" required>
+              <option value="">Выберите статус</option>
+              {% for status in statuses %}
+                {% set selected = (status_id is defined and status_id and status_id|int == status.id) or (task and status.id == task.status_id) %}
+                <option value="{{ status.id }}" data-board-id="{{ status.board_id }}" {% if selected %}selected{% endif %}>
+                  {{ status.name }} ({{ status.board.name }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" type="submit">Сохранить</button>
+      </form>
+    </div>
+  </div>
+  <script>
+    const boardSelect = document.getElementById("board_id");
+    const statusSelect = document.getElementById("status_id");
+    const filterStatusOptions = () => {
+      const boardId = boardSelect.value;
+      let hasVisible = false;
+      Array.from(statusSelect.options).forEach((option, index) => {
+        if (index === 0) {
+          option.hidden = false;
+          return;
+        }
+        const matches = option.dataset.boardId === boardId;
+        option.hidden = !matches;
+        if (matches) {
+          hasVisible = true;
+        }
+      });
+      if (statusSelect.selectedIndex > 0 && statusSelect.options[statusSelect.selectedIndex].hidden) {
+        statusSelect.value = "";
+      }
+      if (!boardId || !hasVisible) {
+        statusSelect.value = "";
+      }
+      statusSelect.disabled = !boardId;
+    };
+    boardSelect.addEventListener("change", filterStatusOptions);
+    filterStatusOptions();
+  </script>
+{% endblock %}
