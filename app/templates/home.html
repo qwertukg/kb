@@ -7,61 +7,36 @@
     <h1 class="h3 mb-0">{{ current_board_name or "Доски" }}</h1>
   </div>
 
-  {% if statuses_by_board %}
-    {% for board_id, statuses in statuses_by_board.items() %}
-      {% if not current_board_name %}
-        {% set board_name = statuses[0].board.name if statuses else "Доска" %}
-        <hr class="my-3">
-        <h5 class="mb-3">{{ board_name }}</h5>
-      {% endif %}
-      <div class="mb-4">
-        <div class="row g-3">
-          {% for status in statuses %}
-            <div class="col-12 col-md-4 col-lg-3">
-              <div class="card shadow-sm h-100">
-                <div class="card-header">
-                  <div class="d-flex align-items-center gap-2">
-                    <span class="d-inline-block rounded-circle" style="width: 10px; height: 10px; background: {{ status.color }};"></span>
-                    <div class="fw-semibold">{{ status.name }}</div>
-                  </div>
-                  {% set free_agents = free_agents_by_status.get(status.id, []) %}
-                  {% if free_agents %}
-                    <div class="d-flex flex-wrap gap-2 mt-2">
-                      {% for agent in free_agents %}
-                        <span class="badge" style="background-color: {{ status.color }}; font-size: 0.7rem;">{{ agent.name }}</span>
-                      {% endfor %}
-                    </div>
-                  {% endif %}
-                </div>
-                <div class="card-body">
-                  {% set assigned_tasks = tasks_by_status.get(status.id, []) %}
-                  {% if assigned_tasks %}
-                    <div class="d-grid gap-2">
-                      {% for task, agent in assigned_tasks %}
-                        {% set last_message = (task.messages | sort(attribute='id'))[-1] if task.messages else None %}
-                        <div class="card">
-                          <div class="card-body">
-                            <div class="mb-2">{{ last_message.text if last_message else "—" }}</div>
-                            {% if agent %}
-                              <span class="badge" style="background-color: {{ status.color }}; font-size: 0.7rem;">{{ agent.name }}</span>
-                            {% else %}
-                              <span class="text-muted small">Нет свободного агента</span>
-                            {% endif %}
-                          </div>
-                        </div>
-                      {% endfor %}
-                    </div>
-                  {% else %}
-                    <div class="text-muted small">Задач нет</div>
-                  {% endif %}
-                </div>
-              </div>
-            </div>
-          {% endfor %}
-        </div>
-      </div>
-    {% endfor %}
-  {% else %}
-    <div class="text-muted">Статусов пока нет.</div>
-  {% endif %}
+  <div id="kanban-root">
+    {% include "partials/kanban.html" %}
+  </div>
+  <script>
+    const kanbanRoot = document.getElementById("kanban-root");
+    const boardId = "{{ request.args.get('board_id', '') }}";
+    const partialUrl = () => {
+      const params = new URLSearchParams();
+      if (boardId) {
+        params.set("board_id", boardId);
+      }
+      params.set("partial", "1");
+      return "{{ url_for('roles.index') }}?" + params.toString();
+    };
+    let pending = false;
+    const refreshKanban = () => {
+      if (pending) {
+        return;
+      }
+      pending = true;
+      fetch(partialUrl(), { headers: { "X-Requested-With": "XMLHttpRequest" } })
+        .then((response) => response.text())
+        .then((html) => {
+          kanbanRoot.innerHTML = html;
+        })
+        .finally(() => {
+          pending = false;
+        });
+    };
+    const events = new EventSource("{{ url_for('roles.events') }}");
+    events.onmessage = refreshKanban;
+  </script>
 {% endblock %}

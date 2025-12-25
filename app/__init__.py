@@ -13,6 +13,11 @@ from .routes import bp
 def create_app() -> Flask:
     app = Flask(__name__)
     app.secret_key = os.getenv("SECRET_KEY", "dev-secret")
+    trusted_hosts = os.getenv("TRUSTED_HOSTS")
+    if trusted_hosts:
+        app.config["TRUSTED_HOSTS"] = [host.strip() for host in trusted_hosts.split(",") if host.strip()]
+    else:
+        app.config["TRUSTED_HOSTS"] = ["localhost", "127.0.0.1", "0.0.0.0", "::1"]
 
     app.register_blueprint(bp)
 
