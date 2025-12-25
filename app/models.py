@@ -72,8 +72,21 @@ class Task(Base):
     __tablename__ = "tasks"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    description: Mapped[str] = mapped_column(Text, nullable=False)
     status_id: Mapped[int] = mapped_column(ForeignKey("statuses.id"), nullable=False)
     board_id: Mapped[int] = mapped_column(ForeignKey("boards.id"), nullable=False)
     status: Mapped[Status] = relationship(foreign_keys=[status_id])
     board: Mapped[Board] = relationship(foreign_keys=[board_id])
+    messages: Mapped[list["Message"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan"
+    )
+
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    task_id: Mapped[int] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    author_id: Mapped[int] = mapped_column(ForeignKey("agents.id"), nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    task: Mapped[Task] = relationship(back_populates="messages")
+    author: Mapped[Agent] = relationship(foreign_keys=[author_id])

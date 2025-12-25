@@ -1,9 +1,13 @@
 {% extends "base.html" %}
 
+{% block title %}AutoKanban — Доски{% endblock %}
+
 {% block content %}
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3 mb-0">Доски</h1>
-    <a class="btn btn-primary" href="{{ url_for('roles.new_board') }}">Создать доску</a>
+    <a class="btn btn-primary" href="{{ url_for('roles.new_board') }}" aria-label="Создать доску" title="Создать доску">
+      <i class="bi bi-plus-lg"></i>
+    </a>
   </div>
 
   <div class="card shadow-sm">
@@ -23,9 +27,13 @@
                 <td>{{ board.name }}</td>
                 <td>{{ board.statuses | length }}</td>
                 <td class="text-end">
-                  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('roles.edit_board', board_id=board.id) }}">Редактировать</a>
+                  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('roles.edit_board', board_id=board.id) }}" aria-label="Редактировать" title="Редактировать">
+                    <i class="bi bi-pencil"></i>
+                  </a>
                   <form class="d-inline" method="post" action="{{ url_for('roles.delete_board', board_id=board.id) }}" onsubmit="return confirm('Удалить доску?');">
-                    <button class="btn btn-sm btn-outline-danger" type="submit">Удалить</button>
+                    <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Удалить" title="Удалить">
+                      <i class="bi bi-trash"></i>
+                    </button>
                   </form>
                 </td>
               </tr>

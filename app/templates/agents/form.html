@@ -2,6 +2,8 @@
 
 {% set is_edit = agent is not none %}
 
+{% block title %}AutoKanban — Агенты{% endblock %}
+
 {% block content %}
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3 mb-0">{{ "Редактировать" if is_edit else "Новый агент" }}</h1>
@@ -49,8 +51,9 @@
               <option value="">Выберите статус</option>
               {% for status in statuses %}
                 {% set selected = (error_status_id is defined and error_status_id and error_status_id|int == status.id) or (agent and status.id == agent.error_status_id) %}
+                {% set agent_names = status_agents.get(status.id, []) %}
                 <option value="{{ status.id }}" data-board-id="{{ status.board_id }}" data-color="{{ status.color }}" {% if selected %}selected{% endif %}>
-                  {{ status.name }} ({{ status.board.name }})
+                  {{ status.name }}{% if agent_names %} ({{ agent_names | join(", ") }}){% endif %}
                 </option>
               {% endfor %}
             </select>
@@ -61,8 +64,9 @@
               <option value="">Выберите статус</option>
               {% for status in statuses %}
                 {% set selected = (working_status_id is defined and working_status_id and working_status_id|int == status.id) or (agent and status.id == agent.working_status_id) %}
+                {% set agent_names = status_agents.get(status.id, []) %}
                 <option value="{{ status.id }}" data-board-id="{{ status.board_id }}" data-color="{{ status.color }}" {% if selected %}selected{% endif %}>
-                  {{ status.name }} ({{ status.board.name }})
+                  {{ status.name }}{% if agent_names %} ({{ agent_names | join(", ") }}){% endif %}
                 </option>
               {% endfor %}
             </select>
@@ -73,8 +77,9 @@
               <option value="">Выберите статус</option>
               {% for status in statuses %}
                 {% set selected = (success_status_id is defined and success_status_id and success_status_id|int == status.id) or (agent and status.id == agent.success_status_id) %}
+                {% set agent_names = status_agents.get(status.id, []) %}
                 <option value="{{ status.id }}" data-board-id="{{ status.board_id }}" data-color="{{ status.color }}" {% if selected %}selected{% endif %}>
-                  {{ status.name }} ({{ status.board.name }})
+                  {{ status.name }}{% if agent_names %} ({{ agent_names | join(", ") }}){% endif %}
                 </option>
               {% endfor %}
             </select>

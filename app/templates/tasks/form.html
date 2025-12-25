@@ -2,6 +2,8 @@
 
 {% set is_edit = task is not none %}
 
+{% block title %}AutoKanban — Задачи{% endblock %}
+
 {% block content %}
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3 mb-0">{{ "Редактировать" if is_edit else "Новая задача" }}</h1>
@@ -11,9 +13,33 @@
   <div class="card shadow-sm">
     <div class="card-body">
       <form method="post" action="{{ url_for('roles.update_task', task_id=task.id) if is_edit else url_for('roles.create_task') }}">
+        {% if task and task.messages %}
+          <div class="mb-3">
+            <label class="form-label">Сообщения</label>
+            <div class="border rounded p-3 bg-light" style="max-height: 240px; overflow-y: auto;">
+              {% for message in task.messages | sort(attribute='id') %}
+                <div class="mb-2">
+                  <div class="fw-semibold">{{ message.author.name }}</div>
+                  <div class="text-muted small">#{{ message.id }}</div>
+                  <div>{{ message.text }}</div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
         <div class="mb-3">
-          <label class="form-label" for="description">Описание</label>
-          <textarea class="form-control" id="description" name="description" rows="6" required>{% if description is defined %}{{ description }}{% elif task %}{{ task.description }}{% else %}{{ "" }}{% endif %}</textarea>
+          <label class="form-label" for="author_id">Автор</label>
+          <select class="form-select" id="author_id" name="author_id" {% if not task %}required{% endif %}>
+            <option value="">Выберите автора</option>
+            {% for agent in agents %}
+              {% set selected = (author_id is defined and author_id and author_id|int == agent.id) %}
+              <option value="{{ agent.id }}" {% if selected %}selected{% endif %}>{{ agent.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="message_text">Сообщение</label>
+          <textarea class="form-control" id="message_text" name="message_text" rows="6" {% if not task %}required{% endif %}>{% if message_text is defined %}{{ message_text }}{% else %}{{ "" }}{% endif %}</textarea>
         </div>
         <div class="row g-3 mb-3">
           <div class="col-md-6">
@@ -32,8 +58,9 @@
               <option value="">Выберите статус</option>
               {% for status in statuses %}
                 {% set selected = (status_id is defined and status_id and status_id|int == status.id) or (task and status.id == task.status_id) %}
+                {% set agent_names = status_agents.get(status.id, []) %}
                 <option value="{{ status.id }}" data-board-id="{{ status.board_id }}" {% if selected %}selected{% endif %}>
-                  {{ status.name }} ({{ status.board.name }})
+                  {{ status.name }}{% if agent_names %} ({{ agent_names | join(", ") }}){% endif %}
                 </option>
               {% endfor %}
             </select>

@@ -1,9 +1,13 @@
 {% extends "base.html" %}
 
+{% block title %}AutoKanban — Агенты{% endblock %}
+
 {% block content %}
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3 mb-0">Агенты</h1>
-    <a class="btn btn-primary" href="{{ url_for('roles.new_agent') }}">Создать агента</a>
+    <a class="btn btn-primary" href="{{ url_for('roles.new_agent') }}" aria-label="Создать агента" title="Создать агента">
+      <i class="bi bi-plus-lg"></i>
+    </a>
   </div>
 
   <div class="card shadow-sm">
@@ -35,9 +39,13 @@
                 <td>{{ agent.acceptance_criteria or "—" }}</td>
                 <td>{{ agent.transfer_criteria or "—" }}</td>
                 <td class="text-end">
-                  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('roles.edit_agent', agent_id=agent.id) }}">Редактировать</a>
+                  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('roles.edit_agent', agent_id=agent.id) }}" aria-label="Редактировать" title="Редактировать">
+                    <i class="bi bi-pencil"></i>
+                  </a>
                   <form class="d-inline" method="post" action="{{ url_for('roles.delete_agent', agent_id=agent.id) }}" onsubmit="return confirm('Удалить агента?');">
-                    <button class="btn btn-sm btn-outline-danger" type="submit">Удалить</button>
+                    <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Удалить" title="Удалить">
+                      <i class="bi bi-trash"></i>
+                    </button>
                   </form>
                 </td>
               </tr>

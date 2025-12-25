@@ -1,9 +1,13 @@
 {% extends "base.html" %}
 
+{% block title %}AutoKanban — Статусы{% endblock %}
+
 {% block content %}
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3 mb-0">Статусы</h1>
-    <a class="btn btn-primary" href="{{ url_for('roles.new_status') }}">Создать статус</a>
+    <a class="btn btn-primary" href="{{ url_for('roles.new_status') }}" aria-label="Создать статус" title="Создать статус">
+      <i class="bi bi-plus-lg"></i>
+    </a>
   </div>
 
   <div class="card shadow-sm">
@@ -30,9 +34,13 @@
                   <span class="ms-2 text-muted">{{ status.color }}</span>
                 </td>
                 <td class="text-end">
-                  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('roles.edit_status', status_id=status.id) }}">Редактировать</a>
+                  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('roles.edit_status', status_id=status.id) }}" aria-label="Редактировать" title="Редактировать">
+                    <i class="bi bi-pencil"></i>
+                  </a>
                   <form class="d-inline" method="post" action="{{ url_for('roles.delete_status', status_id=status.id) }}" onsubmit="return confirm('Удалить статус?');">
-                    <button class="btn btn-sm btn-outline-danger" type="submit">Удалить</button>
+                    <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Удалить" title="Удалить">
+                      <i class="bi bi-trash"></i>
+                    </button>
                   </form>
                 </td>
               </tr>

@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% block title %}AutoKanban — Доски{% endblock %}
+
 {% block content %}
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3 mb-0">{{ current_board_name or "Доски" }}</h1>
@@ -7,40 +9,44 @@
 
   {% if statuses_by_board %}
     {% for board_id, statuses in statuses_by_board.items() %}
+      {% if not current_board_name %}
+        {% set board_name = statuses[0].board.name if statuses else "Доска" %}
+        <hr class="my-3">
+        <h5 class="mb-3">{{ board_name }}</h5>
+      {% endif %}
       <div class="mb-4">
         <div class="row g-3">
           {% for status in statuses %}
             <div class="col-12 col-md-4 col-lg-3">
               <div class="card shadow-sm h-100">
-                <div class="card-header d-flex align-items-center gap-2">
-                  <span class="d-inline-block rounded-circle" style="width: 10px; height: 10px; background: {{ status.color }};"></span>
-                  <div class="fw-semibold">{{ status.name }}</div>
-                </div>
-                <div class="card-body">
+                <div class="card-header">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="d-inline-block rounded-circle" style="width: 10px; height: 10px; background: {{ status.color }};"></span>
+                    <div class="fw-semibold">{{ status.name }}</div>
+                  </div>
                   {% set free_agents = free_agents_by_status.get(status.id, []) %}
                   {% if free_agents %}
-                    <div class="d-flex flex-wrap gap-2">
+                    <div class="d-flex flex-wrap gap-2 mt-2">
                       {% for agent in free_agents %}
-                        <span class="badge" style="background-color: {{ status.color }};">{{ agent.name }}</span>
+                        <span class="badge" style="background-color: {{ status.color }}; font-size: 0.7rem;">{{ agent.name }}</span>
                       {% endfor %}
                     </div>
-                  {% else %}
-                    <div class="text-muted small">Нет агентов</div>
                   {% endif %}
-                  <hr class="my-3">
+                </div>
+                <div class="card-body">
                   {% set assigned_tasks = tasks_by_status.get(status.id, []) %}
                   {% if assigned_tasks %}
-                    <div class="fw-semibold small text-muted mb-2">Задачи</div>
                     <div class="d-grid gap-2">
                       {% for task, agent in assigned_tasks %}
+                        {% set last_message = (task.messages | sort(attribute='id'))[-1] if task.messages else None %}
                         <div class="card">
                           <div class="card-body">
-                        <div class="mb-2">{{ task.description }}</div>
-                        {% if agent %}
-                          <span class="badge" style="background-color: {{ status.color }};">{{ agent.name }}</span>
-                        {% else %}
-                          <span class="text-muted small">Нет свободного агента</span>
-                        {% endif %}
+                            <div class="mb-2">{{ last_message.text if last_message else "—" }}</div>
+                            {% if agent %}
+                              <span class="badge" style="background-color: {{ status.color }}; font-size: 0.7rem;">{{ agent.name }}</span>
+                            {% else %}
+                              <span class="text-muted small">Нет свободного агента</span>
+                            {% endif %}
                           </div>
                         </div>
                       {% endfor %}

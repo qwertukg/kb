@@ -1,9 +1,13 @@
 {% extends "base.html" %}
 
+{% block title %}AutoKanban — Роли{% endblock %}
+
 {% block content %}
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3 mb-0">Роли</h1>
-    <a class="btn btn-primary" href="{{ url_for('roles.new_role') }}">Создать роль</a>
+    <a class="btn btn-primary" href="{{ url_for('roles.new_role') }}" aria-label="Создать роль" title="Создать роль">
+      <i class="bi bi-plus-lg"></i>
+    </a>
   </div>
 
   <div class="card shadow-sm">
@@ -23,9 +27,13 @@
                 <td>{{ role.name }}</td>
                 <td>{{ role.instruction or "—" }}</td>
                 <td class="text-end">
-                  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('roles.edit_role', role_id=role.id) }}">Редактировать</a>
+                  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('roles.edit_role', role_id=role.id) }}" aria-label="Редактировать" title="Редактировать">
+                    <i class="bi bi-pencil"></i>
+                  </a>
                   <form class="d-inline" method="post" action="{{ url_for('roles.delete_role', role_id=role.id) }}" onsubmit="return confirm('Удалить роль?');">
-                    <button class="btn btn-sm btn-outline-danger" type="submit">Удалить</button>
+                    <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Удалить" title="Удалить">
+                      <i class="bi bi-trash"></i>
+                    </button>
                   </form>
                 </td>
               </tr>

@@ -10,7 +10,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from app.db import SessionLocal
-from app.models import Agent, Board, Role, Status, Task
+from app.models import Agent, Board, Message, Role, Status, Task
 
 
 def clear_data(session) -> None:
@@ -182,6 +182,7 @@ def main() -> None:
                 "Подготовлены результаты испытаний.",
             ),
         ]
+        agent_by_name = {}
         for (
             name,
             role_name,
@@ -192,39 +193,41 @@ def main() -> None:
             acceptance,
             transfer,
         ) in agent_specs:
-            session.add(
-                Agent(
-                    name=name,
-                    role_id=role_by_name[role_name].id,
-                    board_id=board_id,
-                    working_status_id=status_by_name[(board_id, working)].id,
-                    success_status_id=status_by_name[(board_id, success)].id,
-                    error_status_id=status_by_name[(board_id, error)].id,
-                    acceptance_criteria=acceptance,
-                    transfer_criteria=transfer,
-                )
+            agent = Agent(
+                name=name,
+                role_id=role_by_name[role_name].id,
+                board_id=board_id,
+                working_status_id=status_by_name[(board_id, working)].id,
+                success_status_id=status_by_name[(board_id, success)].id,
+                error_status_id=status_by_name[(board_id, error)].id,
+                acceptance_criteria=acceptance,
+                transfer_criteria=transfer,
             )
+            session.add(agent)
+            agent_by_name[name] = agent
+        session.flush()
 
         task_specs = [
-            ("Сбор требований по инкубаторам", board.id, "Анализ"),
-            ("Описание бизнес-процессов выращивания", board.id, "Анализ"),
-            ("Реализация сервиса расписаний кормления", board.id, "Разработка"),
-            ("Интеграция датчиков температуры", board.id, "Разработка"),
-            ("Стабилизация мониторинга и алертов", board.id, "Эксплуатация"),
-            ("Регрессия: цикл инкубации", board.id, "Тестирование"),
-            ("Смоук: контроль температуры и влажности", board.id, "Тестирование"),
-            ("План экспериментов по скорости роста", board_lab.id, "Исследование"),
-            ("Настройка датчиков ДНК-контроля", board_lab.id, "Эксперимент"),
-            ("Отчет по устойчивости эмбрионов", board_lab.id, "Отчет"),
+            ("Сбор требований по инкубаторам", board.id, "Анализ", "Александр Сафонов"),
+            ("Описание бизнес-процессов выращивания", board.id, "Анализ", "Петр Власов"),
+            ("Реализация сервиса расписаний кормления", board.id, "Разработка", "Николай Титов"),
+            ("Интеграция датчиков температуры", board.id, "Разработка", "Виталий Орлов"),
+            ("Стабилизация мониторинга и алертов", board.id, "Эксплуатация", "Сергей Кузнецов"),
+            ("Регрессия: цикл инкубации", board.id, "Тестирование", "Елена Морозова"),
+            ("Смоук: контроль температуры и влажности", board.id, "Тестирование", "Ирина Лебедева"),
+            ("План экспериментов по скорости роста", board_lab.id, "Исследование", "Мария Соколова"),
+            ("Настройка датчиков ДНК-контроля", board_lab.id, "Эксперимент", "Артем Власов"),
+            ("Отчет по устойчивости эмбрионов", board_lab.id, "Отчет", "Полина Юдина"),
         ]
-        for description, task_board_id, status_name in task_specs:
-            session.add(
-                Task(
-                    description=description,
-                    board_id=task_board_id,
-                    status_id=status_by_name[(task_board_id, status_name)].id,
-                )
+        for description, task_board_id, status_name, author_name in task_specs:
+            task = Task(
+                board_id=task_board_id,
+                status_id=status_by_name[(task_board_id, status_name)].id,
             )
+            session.add(task)
+            session.flush()
+            author = agent_by_name[author_name]
+            session.add(Message(task_id=task.id, author_id=author.id, text=description))
 
         session.commit()
         print("Seed data applied.")
