@@ -12,70 +12,11 @@
   </div>
   <script>
     const kanbanRoot = document.getElementById("kanban-root");
-    const boardId = "{{ request.args.get('board_id', '') }}";
-    const partialUrl = () => {
-      const params = new URLSearchParams();
-      if (boardId) {
-        params.set("board_id", boardId);
-      }
-      params.set("partial", "1");
-      return "{{ url_for('roles.index') }}?" + params.toString();
-    };
-    let pending = false;
-    let lastPageScrollY = 0;
     const scrollMessagesToBottom = () => {
       kanbanRoot.querySelectorAll(".js-messages-scroll").forEach((container) => {
         container.scrollTop = container.scrollHeight;
       });
     };
-    const snapshotMessageScroll = () => {
-      const positions = {};
-      kanbanRoot.querySelectorAll(".js-messages-scroll").forEach((container) => {
-        const taskId = container.dataset.taskId;
-        if (!taskId) {
-          return;
-        }
-        const isAtBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 4;
-        positions[taskId] = { scrollTop: container.scrollTop, isAtBottom };
-      });
-      return positions;
-    };
-    const restoreMessageScroll = (positions) => {
-      kanbanRoot.querySelectorAll(".js-messages-scroll").forEach((container) => {
-        const taskId = container.dataset.taskId;
-        if (!taskId) {
-          return;
-        }
-        if (!(taskId in positions)) {
-          container.scrollTop = container.scrollHeight;
-          return;
-        }
-        const { scrollTop, isAtBottom } = positions[taskId];
-        container.scrollTop = isAtBottom ? container.scrollHeight : scrollTop;
-      });
-    };
-    const refreshKanban = () => {
-      if (pending) {
-        return;
-      }
-      pending = true;
-      lastPageScrollY = window.scrollY;
-      const scrollPositions = snapshotMessageScroll();
-      fetch(partialUrl(), { headers: { "X-Requested-With": "XMLHttpRequest" } })
-        .then((response) => response.text())
-        .then((html) => {
-          kanbanRoot.innerHTML = html;
-          requestAnimationFrame(() => {
-            window.scrollTo({ top: lastPageScrollY, behavior: "auto" });
-            restoreMessageScroll(scrollPositions);
-          });
-        })
-        .finally(() => {
-          pending = false;
-        });
-    };
-    const events = new EventSource("{{ url_for('roles.events') }}");
-    events.onmessage = refreshKanban;
     const initialScroll = () => {
       requestAnimationFrame(scrollMessagesToBottom);
     };

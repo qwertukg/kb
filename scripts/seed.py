@@ -219,7 +219,31 @@ def main() -> None:
             ("Настройка датчиков ДНК-контроля", board_lab.id, "Эксперимент", "Артем Власов"),
             ("Отчет по устойчивости эмбрионов", board_lab.id, "Отчет", "Полина Юдина"),
         ]
-        for description, task_board_id, status_name, author_name in task_specs:
+        last_messages = [
+            "Готово, все проверил.",
+            "Есть прогресс, но остались вопросы по границам и входным данным.",
+            (
+                "Подробный апдейт: собрал все материалы, сверил с требованиями, "
+                "выделил риски и зависимости, подготовил план работ и предложения "
+                "по срокам; жду подтверждения перед финальным стартом."
+            ),
+            "Сделал, можно смотреть.",
+            "Нужна обратная связь по приоритетам и срокам.",
+            (
+                "Сводка по итогам: выполнен аудит, зафиксированы узкие места, "
+                "сформирован список изменений и план внедрения, предлагаю согласовать "
+                "окно работ и ответственных."
+            ),
+            "Завершил первичную проверку.",
+            "Двигаюсь по плану, пришлю результаты завтра.",
+            (
+                "Длинный статус: проанализировал текущие процессы, подготовил карту "
+                "зависимостей, оценил риски и варианты реализации, осталось согласовать "
+                "итоговый подход с командой."
+            ),
+            "Ок, принял.",
+        ]
+        for index, (description, task_board_id, status_name, author_name) in enumerate(task_specs):
             task = Task(
                 title=description,
                 board_id=task_board_id,
@@ -228,21 +252,16 @@ def main() -> None:
             session.add(task)
             session.flush()
             author = agent_by_name[author_name]
-            session.add(Message(task_id=task.id, author_id=author.id, text=description))
-            session.add(
-                Message(
-                    task_id=task.id,
-                    author_id=author.id,
-                    text="Стартую работу, уточняю детали.",
-                )
-            )
-            session.add(
-                Message(
-                    task_id=task.id,
-                    author_id=author.id,
-                    text="Есть черновик, нужны правки по требованиям.",
-                )
-            )
+            messages = [
+                f"Принял задачу: {description}.",
+                (
+                    f"{author_name} уточняет требования по '{description}', собрал вводные "
+                    "и сформировал план работ; нужно согласовать приоритеты и сроки."
+                ),
+                last_messages[index % len(last_messages)],
+            ]
+            for text in messages:
+                session.add(Message(task_id=task.id, author_id=author.id, text=text))
 
         session.commit()
         print("Seed data applied.")
