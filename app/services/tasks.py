@@ -46,13 +46,14 @@ def get_form_data() -> tuple[list[Board], list[Status], list[Agent], dict[int, l
 
 
 def create_task(
+    title: str,
     board_id: str,
     status_id: str,
     author_id: str,
     message_text: str,
 ) -> tuple[Task | None, str | None]:
-    if not board_id or not status_id or not author_id or not message_text:
-        return None, "Доска, статус, автор и сообщение обязательны."
+    if not title or not board_id or not status_id or not author_id or not message_text:
+        return None, "Заголовок, доска, статус, автор и сообщение обязательны."
 
     session = SessionLocal()
     board = session.get(Board, int(board_id))
@@ -61,7 +62,7 @@ def create_task(
     if not board or not status or status.board_id != board.id or not author:
         return None, "Проверьте доску, статус и автора."
 
-    task = Task(board_id=board.id, status_id=status.id)
+    task = Task(title=title, board_id=board.id, status_id=status.id)
     session.add(task)
     session.flush()
     session.add(Message(task_id=task.id, author_id=author.id, text=message_text))
@@ -71,6 +72,7 @@ def create_task(
 
 def update_task(
     task_id: int,
+    title: str,
     board_id: str,
     status_id: str,
     author_id: str,
@@ -81,8 +83,8 @@ def update_task(
     if not task:
         return None, "Задача не найдена."
 
-    if not board_id or not status_id:
-        return None, "Доска и статус обязательны."
+    if not title or not board_id or not status_id:
+        return None, "Заголовок, доска и статус обязательны."
 
     board = session.get(Board, int(board_id))
     status = session.get(Status, int(status_id))
@@ -92,6 +94,7 @@ def update_task(
     if message_text and not author:
         return None, "Выберите автора для сообщения."
 
+    task.title = title
     task.board_id = board.id
     task.status_id = status.id
     if message_text:

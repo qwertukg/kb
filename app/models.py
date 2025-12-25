@@ -74,6 +74,7 @@ class Task(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     status_id: Mapped[int] = mapped_column(ForeignKey("statuses.id"), nullable=False)
     board_id: Mapped[int] = mapped_column(ForeignKey("boards.id"), nullable=False)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
     status: Mapped[Status] = relationship(foreign_keys=[status_id])
     board: Mapped[Board] = relationship(foreign_keys=[board_id])
     messages: Mapped[list["Message"]] = relationship(

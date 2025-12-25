@@ -15,6 +15,7 @@
       <table class="table table-striped mb-0">
         <thead>
           <tr>
+            <th>Заголовок</th>
             <th>Сообщения</th>
             <th>Доска</th>
             <th>Статус</th>
@@ -26,6 +27,7 @@
             {% for task in tasks %}
               <tr>
                 {% set last_message = (task.messages | sort(attribute='id'))[-1] if task.messages else None %}
+                <td>{{ task.title or "—" }}</td>
                 <td>
                   {% if last_message %}
                     <div>{{ last_message.text }}</div>
@@ -50,7 +52,7 @@
             {% endfor %}
           {% else %}
             <tr>
-              <td colspan="4" class="text-center text-muted py-4">Задач пока нет.</td>
+              <td colspan="5" class="text-center text-muted py-4">Задач пока нет.</td>
             </tr>
           {% endif %}
         </tbody>

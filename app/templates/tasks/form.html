@@ -28,6 +28,17 @@
           </div>
         {% endif %}
         <div class="mb-3">
+          <label class="form-label" for="title">Заголовок</label>
+          <input
+            class="form-control"
+            id="title"
+            name="title"
+            type="text"
+            required
+            value="{% if title is defined %}{{ title }}{% elif task %}{{ task.title }}{% else %}{{ "" }}{% endif %}"
+          >
+        </div>
+        <div class="mb-3">
           <label class="form-label" for="author_id">Автор</label>
           <select class="form-select" id="author_id" name="author_id" {% if not task %}required{% endif %}>
             <option value="">Выберите автора</option>

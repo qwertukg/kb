@@ -221,6 +221,7 @@ def main() -> None:
         ]
         for description, task_board_id, status_name, author_name in task_specs:
             task = Task(
+                title=description,
                 board_id=task_board_id,
                 status_id=status_by_name[(task_board_id, status_name)].id,
             )
@@ -228,6 +229,20 @@ def main() -> None:
             session.flush()
             author = agent_by_name[author_name]
             session.add(Message(task_id=task.id, author_id=author.id, text=description))
+            session.add(
+                Message(
+                    task_id=task.id,
+                    author_id=author.id,
+                    text="Стартую работу, уточняю детали.",
+                )
+            )
+            session.add(
+                Message(
+                    task_id=task.id,
+                    author_id=author.id,
+                    text="Есть черновик, нужны правки по требованиям.",
+                )
+            )
 
         session.commit()
         print("Seed data applied.")

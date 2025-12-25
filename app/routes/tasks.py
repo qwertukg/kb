@@ -26,12 +26,13 @@ def new_task() -> str:
 
 @bp.post("/tasks")
 def create_task() -> str:
+    title = request.form.get("title", "").strip()
     board_id = request.form.get("board_id", "").strip()
     status_id = request.form.get("status_id", "").strip()
     author_id = request.form.get("author_id", "").strip()
     message_text = request.form.get("message_text", "").strip()
 
-    task, error = tasks_service.create_task(board_id, status_id, author_id, message_text)
+    task, error = tasks_service.create_task(title, board_id, status_id, author_id, message_text)
     if error:
         boards, statuses, agents, status_agents = tasks_service.get_form_data()
         flash(error, "danger")
@@ -42,6 +43,7 @@ def create_task() -> str:
             statuses=statuses,
             status_agents=status_agents,
             agents=agents,
+            title=title,
             board_id=board_id,
             status_id=status_id,
             author_id=author_id,
@@ -72,6 +74,7 @@ def edit_task(task_id: int) -> str:
 
 @bp.post("/tasks/<int:task_id>")
 def update_task(task_id: int) -> str:
+    title = request.form.get("title", "").strip()
     board_id = request.form.get("board_id", "").strip()
     status_id = request.form.get("status_id", "").strip()
     author_id = request.form.get("author_id", "").strip()
@@ -79,6 +82,7 @@ def update_task(task_id: int) -> str:
 
     task, error = tasks_service.update_task(
         task_id,
+        title,
         board_id,
         status_id,
         author_id,
@@ -95,6 +99,7 @@ def update_task(task_id: int) -> str:
             statuses=statuses,
             status_agents=status_agents,
             agents=agents,
+            title=title,
             board_id=board_id,
             status_id=status_id,
             author_id=author_id,
