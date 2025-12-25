@@ -1,22 +1,14 @@
 from __future__ import annotations
 
 from flask import flash, redirect, render_template, request, url_for
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
-from ..db import SessionLocal
-from ..models import Board
+from ..services import boards as boards_service
 from . import bp
 
 
 @bp.get("/boards")
 def list_boards() -> str:
-    session = SessionLocal()
-    boards = (
-        session.execute(select(Board).options(selectinload(Board.statuses)).order_by(Board.name))
-        .scalars()
-        .all()
-    )
+    boards = boards_service.list_boards()
     return render_template("boards/list.html", boards=boards)
 
 
@@ -29,27 +21,18 @@ def new_board() -> str:
 def create_board() -> str:
     name = request.form.get("name", "").strip()
 
-    if not name:
-        flash("Имя обязательно.", "danger")
+    board, error = boards_service.create_board(name)
+    if error:
+        flash(error, "danger")
         return render_template("boards/form.html", board=None, name=name)
 
-    session = SessionLocal()
-    exists = session.execute(select(Board).where(Board.name == name)).scalar_one_or_none()
-    if exists:
-        flash("Доска с таким именем уже существует.", "danger")
-        return render_template("boards/form.html", board=None, name=name)
-
-    board = Board(name=name)
-    session.add(board)
-    session.commit()
     flash("Доска создана.", "success")
     return redirect(url_for("roles.list_boards"))
 
 
 @bp.get("/boards/<int:board_id>/edit")
 def edit_board(board_id: int) -> str:
-    session = SessionLocal()
-    board = session.get(Board, board_id)
+    board = boards_service.get_board(board_id)
     if not board:
         flash("Доска не найдена.", "danger")
         return redirect(url_for("roles.list_boards"))
@@ -61,39 +44,22 @@ def edit_board(board_id: int) -> str:
 def update_board(board_id: int) -> str:
     name = request.form.get("name", "").strip()
 
-    session = SessionLocal()
-    board = session.get(Board, board_id)
-    if not board:
-        flash("Доска не найдена.", "danger")
-        return redirect(url_for("roles.list_boards"))
+    board, error = boards_service.update_board(board_id, name)
+    if error:
+        flash(error, "danger")
+        board_obj = board or boards_service.get_board(board_id)
+        return render_template("boards/form.html", board=board_obj, name=name)
 
-    if not name:
-        flash("Имя обязательно.", "danger")
-        return render_template("boards/form.html", board=board, name=name)
-
-    exists = (
-        session.execute(select(Board).where(Board.name == name, Board.id != board_id))
-        .scalar_one_or_none()
-    )
-    if exists:
-        flash("Доска с таким именем уже существует.", "danger")
-        return render_template("boards/form.html", board=board, name=name)
-
-    board.name = name
-    session.commit()
     flash("Доска обновлена.", "success")
     return redirect(url_for("roles.list_boards"))
 
 
 @bp.post("/boards/<int:board_id>/delete")
 def delete_board(board_id: int) -> str:
-    session = SessionLocal()
-    board = session.get(Board, board_id)
-    if not board:
-        flash("Доска не найдена.", "danger")
+    error = boards_service.delete_board(board_id)
+    if error:
+        flash(error, "danger")
         return redirect(url_for("roles.list_boards"))
 
-    session.delete(board)
-    session.commit()
     flash("Доска удалена.", "success")
     return redirect(url_for("roles.list_boards"))

@@ -1,29 +1,20 @@
 from __future__ import annotations
 
 from flask import flash, redirect, render_template, request, url_for
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
-from ..db import SessionLocal
-from ..models import Board, Status
+from ..services import statuses as statuses_service
 from . import bp
 
 
 @bp.get("/statuses")
 def list_statuses() -> str:
-    session = SessionLocal()
-    statuses = (
-        session.execute(select(Status).options(selectinload(Status.board)).order_by(Status.position))
-        .scalars()
-        .all()
-    )
+    statuses = statuses_service.list_statuses()
     return render_template("statuses/list.html", statuses=statuses)
 
 
 @bp.get("/statuses/new")
 def new_status() -> str:
-    session = SessionLocal()
-    boards = session.execute(select(Board).order_by(Board.name)).scalars().all()
+    boards = statuses_service.get_form_boards()
     return render_template("statuses/form.html", status=None, boards=boards)
 
 
@@ -34,11 +25,10 @@ def create_status() -> str:
     color = request.form.get("color", "").strip()
     board_id = request.form.get("board_id", "").strip()
 
-    session = SessionLocal()
-    boards = session.execute(select(Board).order_by(Board.name)).scalars().all()
-
-    if not name or not position or not board_id:
-        flash("Имя, позиция и доска обязательны.", "danger")
+    status, error = statuses_service.create_status(name, position, color, board_id)
+    if error:
+        boards = statuses_service.get_form_boards()
+        flash(error, "danger")
         return render_template(
             "statuses/form.html",
             status=None,
@@ -49,40 +39,18 @@ def create_status() -> str:
             board_id=board_id,
         )
 
-    board = session.get(Board, int(board_id))
-    if not board:
-        flash("Доска не найдена.", "danger")
-        return render_template(
-            "statuses/form.html",
-            status=None,
-            boards=boards,
-            name=name,
-            position=position,
-            color=color,
-            board_id=board_id,
-        )
-
-    status = Status(
-        name=name,
-        position=int(position),
-        color=color or "#0d6efd",
-        board_id=board.id,
-    )
-    session.add(status)
-    session.commit()
     flash("Статус создан.", "success")
     return redirect(url_for("roles.list_statuses"))
 
 
 @bp.get("/statuses/<int:status_id>/edit")
 def edit_status(status_id: int) -> str:
-    session = SessionLocal()
-    status = session.get(Status, status_id)
+    status = statuses_service.get_status(status_id)
     if not status:
         flash("Статус не найден.", "danger")
         return redirect(url_for("roles.list_statuses"))
 
-    boards = session.execute(select(Board).order_by(Board.name)).scalars().all()
+    boards = statuses_service.get_form_boards()
     return render_template("statuses/form.html", status=status, boards=boards)
 
 
@@ -93,19 +61,14 @@ def update_status(status_id: int) -> str:
     color = request.form.get("color", "").strip()
     board_id = request.form.get("board_id", "").strip()
 
-    session = SessionLocal()
-    status = session.get(Status, status_id)
-    if not status:
-        flash("Статус не найден.", "danger")
-        return redirect(url_for("roles.list_statuses"))
-
-    boards = session.execute(select(Board).order_by(Board.name)).scalars().all()
-
-    if not name or not position or not board_id:
-        flash("Имя, позиция и доска обязательны.", "danger")
+    status, error = statuses_service.update_status(status_id, name, position, color, board_id)
+    if error:
+        boards = statuses_service.get_form_boards()
+        status_obj = status or statuses_service.get_status(status_id)
+        flash(error, "danger")
         return render_template(
             "statuses/form.html",
-            status=status,
+            status=status_obj,
             boards=boards,
             name=name,
             position=position,
@@ -113,37 +76,16 @@ def update_status(status_id: int) -> str:
             board_id=board_id,
         )
 
-    board = session.get(Board, int(board_id))
-    if not board:
-        flash("Доска не найдена.", "danger")
-        return render_template(
-            "statuses/form.html",
-            status=status,
-            boards=boards,
-            name=name,
-            position=position,
-            color=color,
-            board_id=board_id,
-        )
-
-    status.name = name
-    status.position = int(position)
-    status.color = color or "#0d6efd"
-    status.board_id = board.id
-    session.commit()
     flash("Статус обновлен.", "success")
     return redirect(url_for("roles.list_statuses"))
 
 
 @bp.post("/statuses/<int:status_id>/delete")
 def delete_status(status_id: int) -> str:
-    session = SessionLocal()
-    status = session.get(Status, status_id)
-    if not status:
-        flash("Статус не найден.", "danger")
+    error = statuses_service.delete_status(status_id)
+    if error:
+        flash(error, "danger")
         return redirect(url_for("roles.list_statuses"))
 
-    session.delete(status)
-    session.commit()
     flash("Статус удален.", "success")
     return redirect(url_for("roles.list_statuses"))
