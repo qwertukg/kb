@@ -17,6 +17,7 @@ def list_agents() -> list[Agent]:
             .options(
                 selectinload(Agent.role),
                 selectinload(Agent.board),
+                selectinload(Agent.current_task),
                 selectinload(Agent.success_status),
                 selectinload(Agent.error_status),
                 selectinload(Agent.working_status),
@@ -152,6 +153,7 @@ def update_agent(
     ):
         return None, "Статусы должны принадлежать выбранной доске."
 
+    previous_working_status_id = agent.working_status_id
     agent.name = name
     agent.role_id = role.id
     agent.board_id = board.id
@@ -160,6 +162,8 @@ def update_agent(
     agent.working_status_id = working_status.id
     agent.acceptance_criteria = acceptance_criteria
     agent.transfer_criteria = transfer_criteria
+    if agent.current_task_id and previous_working_status_id != working_status.id:
+        agent.current_task_id = None
     session.commit()
     return agent, None
 

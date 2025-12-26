@@ -9,6 +9,35 @@ from ..db import SessionLocal
 from ..models import Agent, Board, Message, Status, Task
 
 
+def _sync_task_assignment(session, task: Task) -> None:
+    assigned_agent = (
+        session.execute(select(Agent).where(Agent.current_task_id == task.id))
+        .scalars()
+        .first()
+    )
+    if assigned_agent and assigned_agent.working_status_id != task.status_id:
+        assigned_agent.current_task_id = None
+        assigned_agent = None
+
+    if assigned_agent:
+        return
+
+    available_agent = (
+        session.execute(
+            select(Agent)
+            .where(
+                Agent.working_status_id == task.status_id,
+                Agent.current_task_id.is_(None),
+            )
+            .order_by(Agent.name)
+        )
+        .scalars()
+        .first()
+    )
+    if available_agent:
+        available_agent.current_task_id = task.id
+
+
 def list_tasks() -> list[Task]:
     session = SessionLocal()
     return (
@@ -65,6 +94,7 @@ def create_task(
     task = Task(title=title, board_id=board.id, status_id=status.id)
     session.add(task)
     session.flush()
+    _sync_task_assignment(session, task)
     session.add(Message(task_id=task.id, author_id=author.id, text=message_text))
     session.commit()
     return task, None
@@ -99,6 +129,7 @@ def update_task(
     task.status_id = status.id
     if message_text:
         session.add(Message(task_id=task.id, author_id=author.id, text=message_text))
+    _sync_task_assignment(session, task)
     session.commit()
     return task, None
 
@@ -109,6 +140,9 @@ def delete_task(task_id: int) -> str | None:
     if not task:
         return "Задача не найдена."
 
+    agents = session.execute(select(Agent).where(Agent.current_task_id == task.id)).scalars().all()
+    for agent in agents:
+        agent.current_task_id = None
     session.delete(task)
     session.commit()
     return None

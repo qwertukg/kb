@@ -24,6 +24,7 @@ class Agent(Base):
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"), nullable=False)
     board_id: Mapped[int | None] = mapped_column(ForeignKey("boards.id"), nullable=True)
+    current_task_id: Mapped[int | None] = mapped_column(ForeignKey("tasks.id"), nullable=True)
     success_status_id: Mapped[int | None] = mapped_column(
         ForeignKey("statuses.id"), nullable=True
     )
@@ -37,6 +38,7 @@ class Agent(Base):
     transfer_criteria: Mapped[str | None] = mapped_column(Text, nullable=True)
     role: Mapped[Role] = relationship(back_populates="agents")
     board: Mapped[Board | None] = relationship(foreign_keys=[board_id])
+    current_task: Mapped[Task | None] = relationship(foreign_keys=[current_task_id])
     success_status: Mapped[Status | None] = relationship(foreign_keys=[success_status_id])
     error_status: Mapped[Status | None] = relationship(foreign_keys=[error_status_id])
     working_status: Mapped[Status | None] = relationship(

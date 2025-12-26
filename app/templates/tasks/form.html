@@ -70,7 +70,7 @@
               {% for status in statuses %}
                 {% set selected = (status_id is defined and status_id and status_id|int == status.id) or (task and status.id == task.status_id) %}
                 {% set agent_names = status_agents.get(status.id, []) %}
-                <option value="{{ status.id }}" data-board-id="{{ status.board_id }}" {% if selected %}selected{% endif %}>
+                <option value="{{ status.id }}" data-board-id="{{ status.board_id }}" data-color="{{ status.color }}" {% if selected %}selected{% endif %}>
                   {{ status.name }}{% if agent_names %} ({{ agent_names | join(", ") }}){% endif %}
                 </option>
               {% endfor %}
@@ -84,6 +84,17 @@
   <script>
     const boardSelect = document.getElementById("board_id");
     const statusSelect = document.getElementById("status_id");
+    const applyStatusColor = () => {
+      const option = statusSelect.options[statusSelect.selectedIndex];
+      const color = option?.dataset?.color;
+      if (color) {
+        statusSelect.style.borderColor = color;
+        statusSelect.style.color = color;
+      } else {
+        statusSelect.style.borderColor = "";
+        statusSelect.style.color = "";
+      }
+    };
     const filterStatusOptions = () => {
       const boardId = boardSelect.value;
       let hasVisible = false;
@@ -105,8 +116,10 @@
         statusSelect.value = "";
       }
       statusSelect.disabled = !boardId;
+      applyStatusColor();
     };
     boardSelect.addEventListener("change", filterStatusOptions);
+    statusSelect.addEventListener("change", applyStatusColor);
     filterStatusOptions();
   </script>
 {% endblock %}
