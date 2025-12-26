@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from collections import defaultdict
-
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from ..db import SessionLocal
+from ..llm.codex import run_task_prompt
 from ..models import Agent, Board, Message, Status, Task
+from ..services import settings as settings_service
 
 
 def _sync_task_assignment(session, task: Task) -> None:
@@ -36,6 +37,35 @@ def _sync_task_assignment(session, task: Task) -> None:
     )
     if available_agent:
         available_agent.current_task_id = task.id
+        last_message = (
+            session.execute(
+                select(Message).where(Message.task_id == task.id).order_by(Message.id.desc())
+            )
+            .scalars()
+            .first()
+        )
+        if not last_message:
+            return
+
+        api_key = settings_service.get_parameter_value("API_KEY")
+        model = settings_service.get_parameter_value("MODEL")
+        response, is_completed, error_message = run_task_prompt(
+            available_agent,
+            last_message.text,
+            api_key,
+            model,
+        )
+        if error_message:
+            _handle_llm_error(session, task, available_agent, error_message)
+            return
+
+        if response and is_completed:
+            _handle_llm_success(session, task, available_agent, response)
+            return
+
+        if response:
+            _handle_llm_error(session, task, available_agent, response)
+            return
 
 
 def list_tasks() -> list[Task]:
@@ -146,3 +176,74 @@ def delete_task(task_id: int) -> str | None:
     session.delete(task)
     session.commit()
     return None
+
+
+def _handle_llm_success(session, task: Task, agent: Agent, response: str) -> None:
+    session.add(Message(task_id=task.id, author_id=agent.id, text=response))
+    if agent.success_status_id:
+        task.status_id = agent.success_status_id
+    _sync_task_assignment(session, task)
+
+
+def _handle_llm_error(session, task: Task, agent: Agent, error_message: str) -> None:
+    session.add(Message(task_id=task.id, author_id=agent.id, text=error_message))
+    if agent.error_status_id:
+        task.status_id = agent.error_status_id
+    _sync_task_assignment(session, task)
+
+
+def sent_to_llm(task_id: int) -> tuple[Task | None, str | None]:
+    session = SessionLocal()
+    task = session.get(Task, task_id)
+    if not task:
+        return None, "Задача не найдена."
+
+    last_message = (
+        session.execute(
+            select(Message).where(Message.task_id == task.id).order_by(Message.id.desc())
+        )
+        .scalars()
+        .first()
+    )
+    if not last_message:
+        return task, "В задаче нет сообщений для отправки."
+
+    agent = (
+        session.execute(
+            select(Agent)
+            .options(selectinload(Agent.role))
+            .where(Agent.current_task_id == task.id)
+        )
+        .scalars()
+        .first()
+    )
+    if not agent:
+        return task, "Нет назначенного агента для задачи."
+
+    api_key = settings_service.get_parameter_value("API_KEY")
+    model = settings_service.get_parameter_value("MODEL")
+    response, is_completed, error_message = run_task_prompt(
+        agent,
+        last_message.text,
+        api_key,
+        model,
+    )
+    if error_message:
+        _handle_llm_error(session, task, agent, error_message)
+        session.commit()
+        return task, error_message
+
+    if response and is_completed:
+        _handle_llm_success(session, task, agent, response)
+        session.commit()
+        return task, None
+
+    if response:
+        _handle_llm_error(session, task, agent, response)
+        session.commit()
+        return task, response
+
+    error_message = "Codex-agent не вернул результат."
+    _handle_llm_error(session, task, agent, error_message)
+    session.commit()
+    return task, error_message

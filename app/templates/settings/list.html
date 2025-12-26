@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}AutoKanban — Настройки{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Настройки</h1>
+    <a class="btn btn-primary" href="{{ url_for('roles.new_setting') }}" aria-label="Создать параметр" title="Создать параметр">
+      <i class="bi bi-plus-lg"></i>
+    </a>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-striped mb-0">
+        <thead>
+          <tr>
+            <th>Ключ</th>
+            <th>Значение</th>
+            <th class="text-end">Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if parameters %}
+            {% for parameter in parameters %}
+              <tr>
+                <td>{{ parameter.key }}</td>
+                <td>{{ parameter.value }}</td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('roles.edit_setting', parameter_id=parameter.id) }}" aria-label="Редактировать" title="Редактировать">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                  <form class="d-inline" method="post" action="{{ url_for('roles.delete_setting', parameter_id=parameter.id) }}" onsubmit="return confirm('Удалить параметр?');">
+                    <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Удалить" title="Удалить">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="3" class="text-center text-muted py-4">Параметров пока нет.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

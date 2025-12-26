@@ -6,7 +6,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from ..db import SessionLocal
+from ..llm.codex import register_codex_agent, remove_codex_agent
 from ..models import Agent, Board, Role, Status
+from ..services import settings as settings_service
 
 
 def list_agents() -> list[Agent]:
@@ -103,6 +105,9 @@ def create_agent(
     )
     session.add(agent)
     session.commit()
+    api_key = settings_service.get_parameter_value("API_KEY")
+    model = settings_service.get_parameter_value("MODEL")
+    register_codex_agent(agent, api_key, model)
     return agent, None
 
 
@@ -165,6 +170,9 @@ def update_agent(
     if agent.current_task_id and previous_working_status_id != working_status.id:
         agent.current_task_id = None
     session.commit()
+    api_key = settings_service.get_parameter_value("API_KEY")
+    model = settings_service.get_parameter_value("MODEL")
+    register_codex_agent(agent, api_key, model)
     return agent, None
 
 
@@ -174,6 +182,7 @@ def delete_agent(agent_id: int) -> str | None:
     if not agent:
         return "Агент не найден."
 
+    remove_codex_agent(agent.id)
     session.delete(agent)
     session.commit()
     return None

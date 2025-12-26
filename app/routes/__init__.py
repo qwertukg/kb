@@ -4,4 +4,4 @@ from flask import Blueprint
 
 bp = Blueprint("roles", __name__)
 
-from . import agents, boards, home, roles, statuses, tasks  # noqa: F401, E402
+from . import agents, boards, home, roles, settings, statuses, tasks  # noqa: F401, E402

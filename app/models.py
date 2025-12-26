@@ -70,6 +70,14 @@ class Status(Base):
     )
 
 
+class Parameter(Base):
+    __tablename__ = "parameters"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    key: Mapped[str] = mapped_column(String(120), nullable=False, unique=True)
+    value: Mapped[str] = mapped_column(Text, nullable=False)
+
+
 class Task(Base):
     __tablename__ = "tasks"
 

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% set is_edit = parameter is not none %}
+
+{% block title %}AutoKanban — Настройки{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">{{ "Редактировать" if is_edit else "Новый параметр" }}</h1>
+    <a class="btn btn-outline-secondary" href="{{ url_for('roles.list_settings') }}">Назад</a>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <form method="post" action="{{ url_for('roles.update_setting', parameter_id=parameter.id) if is_edit else url_for('roles.create_setting') }}">
+        <div class="mb-3">
+          <label class="form-label" for="key">Ключ</label>
+          <input
+            class="form-control"
+            id="key"
+            name="key"
+            type="text"
+            value="{% if key is defined %}{{ key }}{% elif parameter %}{{ parameter.key }}{% else %}{{ "" }}{% endif %}"
+            required
+          >
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="value">Значение</label>
+          <textarea class="form-control" id="value" name="value" rows="5" required>{% if value is defined %}{{ value }}{% elif parameter %}{{ parameter.value }}{% else %}{{ "" }}{% endif %}</textarea>
+        </div>
+        <button class="btn btn-primary" type="submit">Сохранить</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

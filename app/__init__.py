@@ -6,8 +6,10 @@ from flask import Flask
 from sqlalchemy import select
 
 from .db import SessionLocal
+from .llm import codex as codex_llm
 from .models import Board
 from .routes import bp
+from .services import settings as settings_service
 
 
 def create_app() -> Flask:
@@ -20,6 +22,7 @@ def create_app() -> Flask:
         app.config["TRUSTED_HOSTS"] = ["localhost", "127.0.0.1", "0.0.0.0", "::1"]
 
     app.register_blueprint(bp)
+    codex_llm.write_codex_config(settings_service.get_parameter_value("CONFIG"))
 
     @app.context_processor
     def inject_boards() -> dict[str, list[Board]]:
