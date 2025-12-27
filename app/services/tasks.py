@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from ..db import SessionLocal
-from ..llm.codex import run_task_prompt
+from llm.codex import run_task_prompt
 from ..models import Agent, Board, Message, Status, Task
 from ..services import settings as settings_service
 

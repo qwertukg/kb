@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import os
-import subprocess
-import tempfile
+import sys
 
-from ..models import Agent
-from ..services import settings as settings_service
+import anyio
+from mcp.client.session import ClientSession
+from mcp.client.stdio import StdioServerParameters, stdio_client
+
+from app.models import Agent
+from app.services import settings as settings_service
 
 
 @dataclass(slots=True)
@@ -22,35 +25,12 @@ class CodexAgent:
             raise ValueError("Не задан API_KEY в настройках.")
         if not self.model:
             raise ValueError("Не задан MODEL в настройках.")
-        full_prompt = prompt
-        if self.instructions:
-            full_prompt = f"{self.instructions}\n\n{prompt}"
-        env = os.environ.copy()
-        env["CODEX_API_KEY"] = self.api_key
-        env["OPENAI_API_KEY"] = self.api_key
-        env["CODEX_MODEL"] = self.model
-        env["OPENAI_MODEL"] = self.model
-        with tempfile.NamedTemporaryFile(delete=False) as output_file:
-            output_path = output_file.name
-        args = ["codex", "exec", "--color", "never", "--output-last-message", output_path]
-        if self.model:
-            args.extend(["-m", self.model])
-        result = subprocess.run(
-            args,
-            input=full_prompt,
-            text=True,
-            capture_output=True,
-            env=env,
-            check=False,
+        response = _run_mcp_codex(
+            prompt=prompt,
+            instructions=self.instructions,
+            api_key=self.api_key,
+            model=self.model,
         )
-        if result.returncode != 0:
-            error_text = result.stderr.strip() or "Codex CLI вернул ошибку."
-            raise RuntimeError(error_text)
-        try:
-            with open(output_path, "r", encoding="utf-8") as output_file:
-                response = output_file.read().strip()
-        finally:
-            os.unlink(output_path)
         return response or None
 
 
@@ -97,6 +77,53 @@ def write_codex_config(config_text: str | None) -> None:
     config_path = os.path.join(codex_home, "config.toml")
     with open(config_path, "w", encoding="utf-8") as output_file:
         output_file.write(config_text)
+
+
+def _extract_tool_text(result) -> str:
+    structured = getattr(result, "structuredContent", None)
+    if isinstance(structured, dict):
+        text = structured.get("text")
+        if isinstance(text, str) and text.strip():
+            return text.strip()
+    parts: list[str] = []
+    for block in result.content or []:
+        text = getattr(block, "text", None)
+        if isinstance(text, str) and text.strip():
+            parts.append(text)
+    return "\n".join(parts).strip()
+
+
+def _run_mcp_codex(
+    *,
+    prompt: str,
+    instructions: str | None,
+    api_key: str,
+    model: str,
+) -> str | None:
+    async def _run() -> str | None:
+        server_params = StdioServerParameters(
+            command=sys.executable,
+            args=["-m", "llm.mcp_server"],
+        )
+        async with stdio_client(server_params) as streams:
+            async with ClientSession(*streams) as session:
+                await session.initialize()
+                result = await session.call_tool(
+                    "run_codex",
+                    {
+                        "prompt": prompt,
+                        "instructions": instructions or "",
+                        "api_key": api_key,
+                        "model": model,
+                    },
+                )
+        if getattr(result, "isError", False):
+            message = _extract_tool_text(result) or "Codex MCP вернул ошибку."
+            raise RuntimeError(message)
+        response_text = _extract_tool_text(result)
+        return response_text or None
+
+    return anyio.run(_run)
 
 
 def _is_task_completed(response: str) -> bool:

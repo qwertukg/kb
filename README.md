@@ -18,7 +18,14 @@ alembic upgrade head
 python -m app
 ```
 
-Откройте в браузере: http://127.0.0.1:5000
+Откройте в браузере: http://127.0.0.1:8008
+
+## Запуск в Docker
+
+```bash
+docker build -t kb .
+docker run --rm -p 8008:8008 kb
+```
 
 ## Сиды (опционально)
 

@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from ..db import SessionLocal
-from ..llm.codex import register_codex_agent, remove_codex_agent
+from llm.codex import register_codex_agent, remove_codex_agent
 from ..models import Agent, Board, Role, Status
 from ..services import settings as settings_service
 

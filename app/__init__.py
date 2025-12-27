@@ -6,7 +6,7 @@ from flask import Flask
 from sqlalchemy import select
 
 from .db import SessionLocal
-from .llm import codex as codex_llm
+from llm import codex as codex_llm
 from .models import Board
 from .routes import bp
 from .services import settings as settings_service
