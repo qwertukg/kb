@@ -5,6 +5,8 @@ from sqlalchemy import select
 from ..db import SessionLocal
 from ..models import Parameter
 
+SETTINGS_KEYS = ("API_KEY", "MODEL", "INSTRUCTIONS", "CONFIG")
+
 
 def list_parameters() -> list[Parameter]:
     session = SessionLocal()
@@ -26,6 +28,31 @@ def get_parameter_value(key: str) -> str | None:
         ).scalar_one_or_none()
     finally:
         session.close()
+
+
+def get_settings_values(keys: tuple[str, ...] = SETTINGS_KEYS) -> dict[str, str]:
+    session = SessionLocal()
+    parameters = (
+        session.execute(select(Parameter).where(Parameter.key.in_(keys))).scalars().all()
+    )
+    values = {parameter.key: parameter.value for parameter in parameters}
+    return {key: values.get(key, "") for key in keys}
+
+
+def update_settings(values: dict[str, str], keys: tuple[str, ...] = SETTINGS_KEYS) -> None:
+    session = SessionLocal()
+    parameters = (
+        session.execute(select(Parameter).where(Parameter.key.in_(keys))).scalars().all()
+    )
+    existing = {parameter.key: parameter for parameter in parameters}
+    for key in keys:
+        value = values.get(key, "")
+        parameter = existing.get(key)
+        if parameter:
+            parameter.value = value
+        else:
+            session.add(Parameter(key=key, value=value))
+    session.commit()
 
 
 def create_parameter(key: str, value: str) -> tuple[Parameter | None, str | None]:
