@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from threading import Lock
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
@@ -8,6 +9,22 @@ from ..db import SessionLocal
 from llm.codex import run_task_prompt
 from app.socketio import socketio
 from ..models import Agent, Message, Parameter, Project, Status, Task
+
+_RUNNING_TASK_IDS: set[int] = set()
+_RUNNING_TASK_IDS_LOCK = Lock()
+
+
+def _set_task_running(task_id: int, is_running: bool) -> None:
+    with _RUNNING_TASK_IDS_LOCK:
+        if is_running:
+            _RUNNING_TASK_IDS.add(task_id)
+        else:
+            _RUNNING_TASK_IDS.discard(task_id)
+
+
+def get_running_task_ids() -> set[int]:
+    with _RUNNING_TASK_IDS_LOCK:
+        return set(_RUNNING_TASK_IDS)
 
 
 def _sync_task_assignment(session, task: Task) -> None:
@@ -221,71 +238,85 @@ def sent_to_llm(task_id: int) -> tuple[Task | None, str | None]:
     if not task:
         return None, "Задача не найдена."
 
+    _set_task_running(task_id, True)
     socketio.emit("task_llm_started", {"task_id": task_id})
 
-    if session.execute(select(Agent).where(Agent.current_task_id == task.id)).scalar_one_or_none() is None:
-        _sync_task_assignment(session, task)
-        session.commit()
-        session.refresh(task)
+    agent_name: str | None = None
+    agent_status_id: int | None = None
+    agent_status_color: str | None = None
 
-    last_message = (
-        session.execute(
-            select(Message).where(Message.task_id == task.id).order_by(Message.id.desc())
+    try:
+        if session.execute(select(Agent).where(Agent.current_task_id == task.id)).scalar_one_or_none() is None:
+            _sync_task_assignment(session, task)
+            session.commit()
+            session.refresh(task)
+
+        last_message = (
+            session.execute(
+                select(Message).where(Message.task_id == task.id).order_by(Message.id.desc())
+            )
+            .scalars()
+            .first()
         )
-        .scalars()
-        .first()
-    )
-    if not last_message:
-        socketio.emit("task_llm_finished", {"task_id": task_id})
-        return task, "В задаче нет сообщений для отправки."
+        if not last_message:
+            return task, "В задаче нет сообщений для отправки."
 
-    agent = (
-        session.execute(
-            select(Agent)
-            .options(selectinload(Agent.role))
-            .where(Agent.current_task_id == task.id)
+        agent = (
+            session.execute(
+                select(Agent)
+                .options(selectinload(Agent.role), selectinload(Agent.working_status))
+                .where(Agent.current_task_id == task.id)
+            )
+            .scalars()
+            .first()
         )
-        .scalars()
-        .first()
-    )
-    if not agent:
-        socketio.emit("task_llm_finished", {"task_id": task_id})
-        return task, "Нет назначенного агента для задачи."
+        if not agent:
+            return task, "Нет назначенного агента для задачи."
+        agent_name = agent.name
+        agent_status_id = agent.working_status_id
+        agent_status_color = agent.working_status.color if agent.working_status else None
 
-    api_key = session.execute(
-        select(Parameter.value).where(Parameter.key == "API_KEY")
-    ).scalar_one_or_none()
-    model = session.execute(
-        select(Parameter.value).where(Parameter.key == "MODEL")
-    ).scalar_one_or_none()
-    response, is_completed, error_message = run_task_prompt(
-        agent,
-        last_message.text,
-        api_key,
-        model,
-        task.id,
-        task.status_id,
-    )
-    if error_message:
+        api_key = session.execute(
+            select(Parameter.value).where(Parameter.key == "API_KEY")
+        ).scalar_one_or_none()
+        model = session.execute(
+            select(Parameter.value).where(Parameter.key == "MODEL")
+        ).scalar_one_or_none()
+        response, is_completed, error_message = run_task_prompt(
+            agent,
+            last_message.text,
+            api_key,
+            model,
+            task.id,
+            task.status_id,
+        )
+        if error_message:
+            _handle_llm_error(session, task, agent, error_message)
+            session.commit()
+            return task, error_message
+
+        if response and is_completed:
+            _handle_llm_success(session, task, agent, response)
+            session.commit()
+            return task, None
+
+        if response:
+            _handle_llm_error(session, task, agent, response)
+            session.commit()
+            return task, response
+
+        error_message = "Codex-agent не вернул результат."
         _handle_llm_error(session, task, agent, error_message)
         session.commit()
-        socketio.emit("task_llm_finished", {"task_id": task_id})
         return task, error_message
-
-    if response and is_completed:
-        _handle_llm_success(session, task, agent, response)
-        session.commit()
-        socketio.emit("task_llm_finished", {"task_id": task_id})
-        return task, None
-
-    if response:
-        _handle_llm_error(session, task, agent, response)
-        session.commit()
-        socketio.emit("task_llm_finished", {"task_id": task_id})
-        return task, response
-
-    error_message = "Codex-agent не вернул результат."
-    _handle_llm_error(session, task, agent, error_message)
-    session.commit()
-    socketio.emit("task_llm_finished", {"task_id": task_id})
-    return task, error_message
+    finally:
+        _set_task_running(task_id, False)
+        socketio.emit(
+            "task_llm_finished",
+            {
+                "task_id": task_id,
+                "agent_name": agent_name,
+                "working_status_id": agent_status_id,
+                "working_status_color": agent_status_color,
+            },
+        )

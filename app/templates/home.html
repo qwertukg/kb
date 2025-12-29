@@ -16,12 +16,72 @@
   ></script>
   <script>
     const kanbanRoot = document.getElementById("kanban-root");
-    const scrollMessagesToBottom = () => {
-      kanbanRoot.querySelectorAll(".js-messages-scroll").forEach((container) => {
-        container.scrollTop = container.scrollHeight;
+    const scrollMessagesToBottom = (container) => {
+      const containers = container
+        ? [container]
+        : Array.from(kanbanRoot.querySelectorAll(".js-messages-scroll"));
+      containers.forEach((item) => {
+        item.scrollTop = item.scrollHeight;
       });
     };
-    const updateTaskMessages = async (taskId) => {
+    const removeFreeAgentBadge = (statusId, agentName) => {
+      if (!statusId || !agentName) {
+        return;
+      }
+      const container = kanbanRoot.querySelector(
+        `.js-free-agents[data-status-id="${statusId}"]`
+      );
+      if (!container) {
+        return;
+      }
+      container.querySelectorAll(".js-free-agent").forEach((badge) => {
+        if (badge.dataset.agentName === agentName) {
+          badge.remove();
+        }
+      });
+    };
+    const addFreeAgentBadge = (statusId, agentName, color) => {
+      if (!statusId || !agentName) {
+        return;
+      }
+      const statusTasks = kanbanRoot.querySelector(
+        `.js-status-tasks[data-status-id="${statusId}"]`
+      );
+      if (!statusTasks) {
+        return;
+      }
+      const columnCard = statusTasks.closest(".card");
+      if (!columnCard) {
+        return;
+      }
+      const header = columnCard.querySelector(".card-header");
+      if (!header) {
+        return;
+      }
+      let container = header.querySelector(
+        `.js-free-agents[data-status-id="${statusId}"]`
+      );
+      if (!container) {
+        container = document.createElement("div");
+        container.className = "d-flex flex-wrap gap-2 mt-2 js-free-agents";
+        container.dataset.statusId = statusId;
+        header.appendChild(container);
+      }
+      const existing = container.querySelector(
+        `.js-free-agent[data-agent-name="${agentName}"]`
+      );
+      if (existing) {
+        return;
+      }
+      const badge = document.createElement("span");
+      badge.className = "badge js-free-agent";
+      badge.dataset.agentName = agentName;
+      badge.style.backgroundColor = color || "#6c757d";
+      badge.style.fontSize = "0.7rem";
+      badge.textContent = agentName;
+      container.appendChild(badge);
+    };
+    const updateTaskMessages = async (taskId, statusId = null) => {
       const response = await fetch(`/tasks/${taskId}/messages`);
       if (!response.ok) {
         return;
@@ -39,6 +99,7 @@
           agentBadge.className = "badge js-task-agent";
           agentBadge.style.backgroundColor = payload.agent_color || "#6c757d";
           agentBadge.style.fontSize = "0.7rem";
+          agentBadge.dataset.agentName = payload.agent_name;
           agentBadge.textContent = payload.agent_name;
           const wrapper = document.createElement("div");
           wrapper.className = "js-task-agent";
@@ -51,6 +112,7 @@
       const authorCount = card.querySelector(".js-author-count");
       if (messagesContainer && payload.messages_html !== undefined) {
         messagesContainer.innerHTML = payload.messages_html;
+        requestAnimationFrame(() => scrollMessagesToBottom(messagesContainer));
       }
       if (messageCount && payload.message_count !== undefined) {
         messageCount.textContent = payload.message_count;
@@ -58,7 +120,13 @@
       if (authorCount && payload.author_count !== undefined) {
         authorCount.textContent = payload.author_count;
       }
-      scrollMessagesToBottom();
+      if (!messagesContainer) {
+        scrollMessagesToBottom();
+      }
+      if (payload.agent_name) {
+        const targetStatusId = statusId || card?.dataset?.statusId;
+        removeFreeAgentBadge(targetStatusId, payload.agent_name);
+      }
     };
     const moveTaskCard = (taskId, statusId) => {
       const card = kanbanRoot.querySelector(`[data-task-id="${taskId}"]`);
@@ -146,7 +214,7 @@
         if (!payload) {
           return;
         }
-        updateTaskMessages(payload.task_id).finally(() => {
+        updateTaskMessages(payload.task_id, payload.status_id).finally(() => {
           moveTaskCard(payload.task_id, payload.status_id);
         });
       });
@@ -161,10 +229,15 @@
           return;
         }
         setTaskSpinner(payload.task_id, false);
+        addFreeAgentBadge(
+          payload.working_status_id,
+          payload.agent_name,
+          payload.working_status_color
+        );
       });
     }
     const initialScroll = () => {
-      requestAnimationFrame(scrollMessagesToBottom);
+      requestAnimationFrame(() => scrollMessagesToBottom());
     };
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", initialScroll);

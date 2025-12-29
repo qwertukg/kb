@@ -9,6 +9,8 @@ from ..models import Agent, Column, Project, Status, Task
 
 def get_home_context(project_id: int | None) -> dict[str, object]:
     session = SessionLocal()
+    from . import tasks as tasks_service
+
     current_project_name = None
     columns = (
         session.execute(
@@ -56,4 +58,5 @@ def get_home_context(project_id: int | None) -> dict[str, object]:
         "tasks_by_status": tasks_by_status,
         "free_agents_by_status": free_agents_by_status,
         "current_project_name": current_project_name,
+        "running_task_ids": tasks_service.get_running_task_ids(),
     }

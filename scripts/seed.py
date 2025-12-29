@@ -64,6 +64,12 @@ def main() -> None:
         )
         session.add(tester_role)
         session.flush()
+        analyst_role = Role(
+            name="Аналитик",
+            instruction="- анализируешь требования\n- уточняешь неполные детали\n- готовишь критерии приемки и риски",
+        )
+        session.add(analyst_role)
+        session.flush()
 
         status_by_name = {status.name: status for status in statuses}
 
@@ -88,9 +94,17 @@ def main() -> None:
             success_status_id=status_by_name["Готово"].id,
             error_status_id=status_by_name["Бэклог"].id,
             acceptance_criteria="- задача относится к тестированию\n- код по задаче есть",
-            transfer_criteria="- тесты по задаче выполнены\n- результат проверки описан в ответе",
+            transfer_criteria="- тесты по задаче написаны\n- результат проверки описан в ответе",
         )
         session.add(tester)
+        session.flush()
+
+        standby_agent = Agent(
+            name="Саня",
+            role_id=analyst_role.id,
+            project_id=project.id,
+        )
+        session.add(standby_agent)
         session.flush()
 
         task = Task(
@@ -104,7 +118,7 @@ def main() -> None:
         session.add(
             Message(
                 task_id=task.id,
-                author_id=agent.id,
+                author_id=standby_agent.id,
                 text="Напиши программу которая возвращает сегодняшнюю дату",
             )
         )
