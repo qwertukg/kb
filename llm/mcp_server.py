@@ -9,7 +9,7 @@ from agents import Agent, Runner
 from agents.models.openai_provider import OpenAIProvider
 from mcp.server.fastmcp import FastMCP
 
-from .sandbox_tools import list_files, make_dir, read_file, run_git, write_file
+from .sandbox_tools import list_files, make_dir, read_file, run_cmd, run_git, write_file
 
 server = FastMCP("kb-codex")
 
@@ -43,7 +43,7 @@ async def run_codex(
     provider = OpenAIProvider(**provider_kwargs)
     sandbox_note = (
         "Рабочая папка: sandbox. Для файлов используй list_files/read_file/write_file/make_dir. "
-        "Для коммитов используй run_git."
+        "Для запуска команд используй run_cmd, для коммитов используй run_git."
     )
     combined_instructions = "\n\n".join(
         part for part in [instructions, sandbox_note] if part
@@ -64,7 +64,7 @@ async def run_codex(
             name="codex",
             instructions=combined_instructions or None,
             model=provider.get_model(model),
-            tools=[list_files, make_dir, read_file, run_git, write_file],
+            tools=[list_files, make_dir, read_file, run_cmd, run_git, write_file],
         )
         result = await Runner.run(agent, prompt)
     finally:

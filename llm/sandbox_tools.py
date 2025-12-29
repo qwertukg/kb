@@ -144,3 +144,31 @@ def run_git(args: list[str]) -> str:
     if result.returncode != 0:
         raise RuntimeError(output or f"git exited with {result.returncode}")
     return output or "ok"
+
+
+@tool
+def run_cmd(
+    args: list[str],
+    cwd: str | None = None,
+    timeout_sec: float | None = None,
+) -> str:
+    """Run a command inside the sandbox directory."""
+    if not isinstance(args, list) or not all(isinstance(item, str) for item in args):
+        raise ValueError("args must be a list of strings.")
+    target_cwd = _resolve_path(cwd or ".")
+    if not target_cwd.is_dir():
+        raise ValueError("cwd must point to a directory inside the sandbox.")
+    try:
+        result = subprocess.run(
+            args,
+            cwd=str(target_cwd),
+            capture_output=True,
+            text=True,
+            timeout=timeout_sec,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(f"command timed out after {exc.timeout} seconds") from exc
+    output = (result.stdout + result.stderr).strip()
+    if result.returncode != 0:
+        raise RuntimeError(output or f"command exited with {result.returncode}")
+    return output or "ok"
