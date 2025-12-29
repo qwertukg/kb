@@ -6,8 +6,7 @@ from sqlalchemy.orm import selectinload
 
 from ..db import SessionLocal
 from llm.codex import run_task_prompt
-from ..models import Agent, Board, Message, Status, Task
-from ..services import settings as settings_service
+from ..models import Agent, Message, Parameter, Project, Status, Task
 
 
 def _sync_task_assignment(session, task: Task) -> None:
@@ -37,35 +36,7 @@ def _sync_task_assignment(session, task: Task) -> None:
     )
     if available_agent:
         available_agent.current_task_id = task.id
-        last_message = (
-            session.execute(
-                select(Message).where(Message.task_id == task.id).order_by(Message.id.desc())
-            )
-            .scalars()
-            .first()
-        )
-        if not last_message:
-            return
-
-        api_key = settings_service.get_parameter_value("API_KEY")
-        model = settings_service.get_parameter_value("MODEL")
-        response, is_completed, error_message = run_task_prompt(
-            available_agent,
-            last_message.text,
-            api_key,
-            model,
-        )
-        if error_message:
-            _handle_llm_error(session, task, available_agent, error_message)
-            return
-
-        if response and is_completed:
-            _handle_llm_success(session, task, available_agent, response)
-            return
-
-        if response:
-            _handle_llm_error(session, task, available_agent, response)
-            return
+        return
 
 
 def list_tasks() -> list[Task]:
@@ -74,7 +45,7 @@ def list_tasks() -> list[Task]:
         session.execute(
             select(Task)
             .options(
-                selectinload(Task.board),
+                selectinload(Task.project),
                 selectinload(Task.status),
                 selectinload(Task.messages).selectinload(Message.author),
             )
@@ -90,38 +61,40 @@ def get_task(task_id: int) -> Task | None:
     return session.get(Task, task_id)
 
 
-def get_form_data() -> tuple[list[Board], list[Status], list[Agent], dict[int, list[str]]]:
+def get_form_data() -> tuple[list[Project], list[Status], list[Agent], dict[int, list[str]]]:
     session = SessionLocal()
-    boards = session.execute(select(Board).order_by(Board.name)).scalars().all()
+    projects = session.execute(select(Project).order_by(Project.name)).scalars().all()
     statuses = session.execute(
-        select(Status).options(selectinload(Status.board)).order_by(Status.board_id, Status.position)
+        select(Status)
+        .options(selectinload(Status.project))
+        .order_by(Status.project_id, Status.name)
     ).scalars().all()
     agents = session.execute(select(Agent).order_by(Agent.name)).scalars().all()
     status_agents: dict[int, list[str]] = defaultdict(list)
     for agent in agents:
         if agent.working_status_id:
             status_agents[agent.working_status_id].append(agent.name)
-    return boards, statuses, agents, status_agents
+    return projects, statuses, agents, status_agents
 
 
 def create_task(
     title: str,
-    board_id: str,
+    project_id: str,
     status_id: str,
     author_id: str,
     message_text: str,
 ) -> tuple[Task | None, str | None]:
-    if not title or not board_id or not status_id or not author_id or not message_text:
-        return None, "Заголовок, доска, статус, автор и сообщение обязательны."
+    if not title or not project_id or not status_id or not author_id or not message_text:
+        return None, "Заголовок, проект, статус, автор и сообщение обязательны."
 
     session = SessionLocal()
-    board = session.get(Board, int(board_id))
+    project = session.get(Project, int(project_id))
     status = session.get(Status, int(status_id))
     author = session.get(Agent, int(author_id)) if author_id else None
-    if not board or not status or status.board_id != board.id or not author:
-        return None, "Проверьте доску, статус и автора."
+    if not project or not status or status.project_id != project.id or not author:
+        return None, "Проверьте проект, статус и автора."
 
-    task = Task(title=title, board_id=board.id, status_id=status.id)
+    task = Task(title=title, project_id=project.id, status_id=status.id)
     session.add(task)
     session.flush()
     _sync_task_assignment(session, task)
@@ -133,7 +106,7 @@ def create_task(
 def update_task(
     task_id: int,
     title: str,
-    board_id: str,
+    project_id: str,
     status_id: str,
     author_id: str,
     message_text: str,
@@ -143,19 +116,19 @@ def update_task(
     if not task:
         return None, "Задача не найдена."
 
-    if not title or not board_id or not status_id:
-        return None, "Заголовок, доска и статус обязательны."
+    if not title or not project_id or not status_id:
+        return None, "Заголовок, проект и статус обязательны."
 
-    board = session.get(Board, int(board_id))
+    project = session.get(Project, int(project_id))
     status = session.get(Status, int(status_id))
     author = session.get(Agent, int(author_id)) if author_id else None
-    if not board or not status or status.board_id != board.id:
-        return None, "Статус должен принадлежать выбранной доске."
+    if not project or not status or status.project_id != project.id:
+        return None, "Статус должен принадлежать выбранному проекту."
     if message_text and not author:
         return None, "Выберите автора для сообщения."
 
     task.title = title
-    task.board_id = board.id
+    task.project_id = project.id
     task.status_id = status.id
     if message_text:
         session.add(Message(task_id=task.id, author_id=author.id, text=message_text))
@@ -193,7 +166,8 @@ def _handle_llm_error(session, task: Task, agent: Agent, error_message: str) -> 
 
 
 def sent_to_llm(task_id: int) -> tuple[Task | None, str | None]:
-    session = SessionLocal()
+    session = SessionLocal.session_factory()
+    session.info["skip_status_listener"] = True
     task = session.get(Task, task_id)
     if not task:
         return None, "Задача не найдена."
@@ -220,13 +194,19 @@ def sent_to_llm(task_id: int) -> tuple[Task | None, str | None]:
     if not agent:
         return task, "Нет назначенного агента для задачи."
 
-    api_key = settings_service.get_parameter_value("API_KEY")
-    model = settings_service.get_parameter_value("MODEL")
+    api_key = session.execute(
+        select(Parameter.value).where(Parameter.key == "API_KEY")
+    ).scalar_one_or_none()
+    model = session.execute(
+        select(Parameter.value).where(Parameter.key == "MODEL")
+    ).scalar_one_or_none()
     response, is_completed, error_message = run_task_prompt(
         agent,
         last_message.text,
         api_key,
         model,
+        task.id,
+        task.status_id,
     )
     if error_message:
         _handle_llm_error(session, task, agent, error_message)

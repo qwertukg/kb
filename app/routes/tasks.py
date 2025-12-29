@@ -13,11 +13,11 @@ def list_tasks() -> str:
 
 @bp.get("/tasks/new")
 def new_task() -> str:
-    boards, statuses, agents, status_agents = tasks_service.get_form_data()
+    projects, statuses, agents, status_agents = tasks_service.get_form_data()
     return render_template(
         "tasks/form.html",
         task=None,
-        boards=boards,
+        projects=projects,
         statuses=statuses,
         status_agents=status_agents,
         agents=agents,
@@ -27,24 +27,30 @@ def new_task() -> str:
 @bp.post("/tasks")
 def create_task() -> str:
     title = request.form.get("title", "").strip()
-    board_id = request.form.get("board_id", "").strip()
+    project_id = request.form.get("project_id", "").strip()
     status_id = request.form.get("status_id", "").strip()
     author_id = request.form.get("author_id", "").strip()
     message_text = request.form.get("message_text", "").strip()
 
-    task, error = tasks_service.create_task(title, board_id, status_id, author_id, message_text)
+    task, error = tasks_service.create_task(
+        title,
+        project_id,
+        status_id,
+        author_id,
+        message_text,
+    )
     if error:
-        boards, statuses, agents, status_agents = tasks_service.get_form_data()
+        projects, statuses, agents, status_agents = tasks_service.get_form_data()
         flash(error, "danger")
         return render_template(
             "tasks/form.html",
             task=None,
-            boards=boards,
+            projects=projects,
             statuses=statuses,
             status_agents=status_agents,
             agents=agents,
             title=title,
-            board_id=board_id,
+            project_id=project_id,
             status_id=status_id,
             author_id=author_id,
             message_text=message_text,
@@ -61,11 +67,11 @@ def edit_task(task_id: int) -> str:
         flash("Задача не найдена.", "danger")
         return redirect(url_for("roles.list_tasks"))
 
-    boards, statuses, agents, status_agents = tasks_service.get_form_data()
+    projects, statuses, agents, status_agents = tasks_service.get_form_data()
     return render_template(
         "tasks/form.html",
         task=task,
-        boards=boards,
+        projects=projects,
         statuses=statuses,
         status_agents=status_agents,
         agents=agents,
@@ -75,7 +81,7 @@ def edit_task(task_id: int) -> str:
 @bp.post("/tasks/<int:task_id>")
 def update_task(task_id: int) -> str:
     title = request.form.get("title", "").strip()
-    board_id = request.form.get("board_id", "").strip()
+    project_id = request.form.get("project_id", "").strip()
     status_id = request.form.get("status_id", "").strip()
     author_id = request.form.get("author_id", "").strip()
     message_text = request.form.get("message_text", "").strip()
@@ -83,24 +89,24 @@ def update_task(task_id: int) -> str:
     task, error = tasks_service.update_task(
         task_id,
         title,
-        board_id,
+        project_id,
         status_id,
         author_id,
         message_text,
     )
     if error:
-        boards, statuses, agents, status_agents = tasks_service.get_form_data()
+        projects, statuses, agents, status_agents = tasks_service.get_form_data()
         task_obj = task or tasks_service.get_task(task_id)
         flash(error, "danger")
         return render_template(
             "tasks/form.html",
             task=task_obj,
-            boards=boards,
+            projects=projects,
             statuses=statuses,
             status_agents=status_agents,
             agents=agents,
             title=title,
-            board_id=board_id,
+            project_id=project_id,
             status_id=status_id,
             author_id=author_id,
             message_text=message_text,

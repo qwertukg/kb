@@ -35,12 +35,12 @@
           </select>
         </div>
         <div class="mb-3">
-          <label class="form-label" for="board_id">Доска</label>
-          <select class="form-select" id="board_id" name="board_id" required>
-            <option value="">Выберите доску</option>
-            {% for board in boards %}
-              {% set selected = (board_id is defined and board_id and board_id|int == board.id) or (agent and board.id == agent.board_id) %}
-              <option value="{{ board.id }}" {% if selected %}selected{% endif %}>{{ board.name }}</option>
+          <label class="form-label" for="project_id">Проект</label>
+          <select class="form-select" id="project_id" name="project_id" required>
+            <option value="">Выберите проект</option>
+            {% for project in projects %}
+              {% set selected = (project_id is defined and project_id and project_id|int == project.id) or (agent and project.id == agent.project_id) %}
+              <option value="{{ project.id }}" {% if selected %}selected{% endif %}>{{ project.name }}</option>
             {% endfor %}
           </select>
         </div>
@@ -52,7 +52,7 @@
               {% for status in statuses %}
                 {% set selected = (error_status_id is defined and error_status_id and error_status_id|int == status.id) or (agent and status.id == agent.error_status_id) %}
                 {% set agent_names = status_agents.get(status.id, []) %}
-                <option value="{{ status.id }}" data-board-id="{{ status.board_id }}" data-color="{{ status.color }}" {% if selected %}selected{% endif %}>
+                <option value="{{ status.id }}" data-project-id="{{ status.project_id }}" data-color="{{ status.color }}" {% if selected %}selected{% endif %}>
                   {{ status.name }}{% if agent_names %} ({{ agent_names | join(", ") }}){% endif %}
                 </option>
               {% endfor %}
@@ -65,7 +65,7 @@
               {% for status in statuses %}
                 {% set selected = (working_status_id is defined and working_status_id and working_status_id|int == status.id) or (agent and status.id == agent.working_status_id) %}
                 {% set agent_names = status_agents.get(status.id, []) %}
-                <option value="{{ status.id }}" data-board-id="{{ status.board_id }}" data-color="{{ status.color }}" {% if selected %}selected{% endif %}>
+                <option value="{{ status.id }}" data-project-id="{{ status.project_id }}" data-color="{{ status.color }}" {% if selected %}selected{% endif %}>
                   {{ status.name }}{% if agent_names %} ({{ agent_names | join(", ") }}){% endif %}
                 </option>
               {% endfor %}
@@ -78,7 +78,7 @@
               {% for status in statuses %}
                 {% set selected = (success_status_id is defined and success_status_id and success_status_id|int == status.id) or (agent and status.id == agent.success_status_id) %}
                 {% set agent_names = status_agents.get(status.id, []) %}
-                <option value="{{ status.id }}" data-board-id="{{ status.board_id }}" data-color="{{ status.color }}" {% if selected %}selected{% endif %}>
+                <option value="{{ status.id }}" data-project-id="{{ status.project_id }}" data-color="{{ status.color }}" {% if selected %}selected{% endif %}>
                   {{ status.name }}{% if agent_names %} ({{ agent_names | join(", ") }}){% endif %}
                 </option>
               {% endfor %}
@@ -106,7 +106,7 @@
   <script>
     const roleSelect = document.getElementById("role_id");
     const instructionBox = document.getElementById("role-instruction");
-    const boardSelect = document.getElementById("board_id");
+    const projectSelect = document.getElementById("project_id");
     const successSelect = document.getElementById("success_status_id");
     const errorSelect = document.getElementById("error_status_id");
     const workingSelect = document.getElementById("working_status_id");
@@ -116,14 +116,14 @@
       instructionBox.value = instruction || "Инструкция не задана.";
     };
     const filterStatusOptions = (select) => {
-      const boardId = boardSelect.value;
+      const projectId = projectSelect.value;
       let hasVisible = false;
       Array.from(select.options).forEach((option, index) => {
         if (index === 0) {
           option.hidden = false;
           return;
         }
-        const matches = option.dataset.boardId === boardId;
+        const matches = option.dataset.projectId === projectId;
         option.hidden = !matches;
         if (matches) {
           hasVisible = true;
@@ -132,10 +132,10 @@
       if (select.selectedIndex > 0 && select.options[select.selectedIndex].hidden) {
         select.value = "";
       }
-      if (!boardId || !hasVisible) {
+      if (!projectId || !hasVisible) {
         select.value = "";
       }
-      select.disabled = !boardId;
+      select.disabled = !projectId;
     };
     const applyStatusColor = (select) => {
       const option = select.options[select.selectedIndex];
@@ -157,7 +157,7 @@
       applyStatusColor(workingSelect);
     };
     roleSelect.addEventListener("change", updateInstruction);
-    boardSelect.addEventListener("change", updateStatuses);
+    projectSelect.addEventListener("change", updateStatuses);
     successSelect.addEventListener("change", () => applyStatusColor(successSelect));
     errorSelect.addEventListener("change", () => applyStatusColor(errorSelect));
     workingSelect.addEventListener("change", () => applyStatusColor(workingSelect));

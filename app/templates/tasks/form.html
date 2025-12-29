@@ -54,12 +54,12 @@
         </div>
         <div class="row g-3 mb-3">
           <div class="col-md-6">
-            <label class="form-label" for="board_id">Доска</label>
-            <select class="form-select" id="board_id" name="board_id" required>
-              <option value="">Выберите доску</option>
-              {% for board in boards %}
-                {% set selected = (board_id is defined and board_id and board_id|int == board.id) or (task and board.id == task.board_id) %}
-                <option value="{{ board.id }}" {% if selected %}selected{% endif %}>{{ board.name }}</option>
+            <label class="form-label" for="project_id">Проект</label>
+            <select class="form-select" id="project_id" name="project_id" required>
+              <option value="">Выберите проект</option>
+              {% for project in projects %}
+                {% set selected = (project_id is defined and project_id and project_id|int == project.id) or (task and project.id == task.project_id) %}
+                <option value="{{ project.id }}" {% if selected %}selected{% endif %}>{{ project.name }}</option>
               {% endfor %}
             </select>
           </div>
@@ -70,7 +70,7 @@
               {% for status in statuses %}
                 {% set selected = (status_id is defined and status_id and status_id|int == status.id) or (task and status.id == task.status_id) %}
                 {% set agent_names = status_agents.get(status.id, []) %}
-                <option value="{{ status.id }}" data-board-id="{{ status.board_id }}" data-color="{{ status.color }}" {% if selected %}selected{% endif %}>
+                <option value="{{ status.id }}" data-project-id="{{ status.project_id }}" data-color="{{ status.color }}" {% if selected %}selected{% endif %}>
                   {{ status.name }}{% if agent_names %} ({{ agent_names | join(", ") }}){% endif %}
                 </option>
               {% endfor %}
@@ -82,7 +82,7 @@
     </div>
   </div>
   <script>
-    const boardSelect = document.getElementById("board_id");
+    const projectSelect = document.getElementById("project_id");
     const statusSelect = document.getElementById("status_id");
     const applyStatusColor = () => {
       const option = statusSelect.options[statusSelect.selectedIndex];
@@ -96,14 +96,14 @@
       }
     };
     const filterStatusOptions = () => {
-      const boardId = boardSelect.value;
+      const projectId = projectSelect.value;
       let hasVisible = false;
       Array.from(statusSelect.options).forEach((option, index) => {
         if (index === 0) {
           option.hidden = false;
           return;
         }
-        const matches = option.dataset.boardId === boardId;
+        const matches = option.dataset.projectId === projectId;
         option.hidden = !matches;
         if (matches) {
           hasVisible = true;
@@ -112,13 +112,13 @@
       if (statusSelect.selectedIndex > 0 && statusSelect.options[statusSelect.selectedIndex].hidden) {
         statusSelect.value = "";
       }
-      if (!boardId || !hasVisible) {
+      if (!projectId || !hasVisible) {
         statusSelect.value = "";
       }
-      statusSelect.disabled = !boardId;
+      statusSelect.disabled = !projectId;
       applyStatusColor();
     };
-    boardSelect.addEventListener("change", filterStatusOptions);
+    projectSelect.addEventListener("change", filterStatusOptions);
     statusSelect.addEventListener("change", applyStatusColor);
     filterStatusOptions();
   </script>

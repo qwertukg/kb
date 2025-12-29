@@ -25,25 +25,14 @@
           >
         </div>
         <div class="mb-3">
-          <label class="form-label" for="board_id">Доска</label>
-          <select class="form-select" id="board_id" name="board_id" required>
-            <option value="">Выберите доску</option>
-            {% for board in boards %}
-              {% set selected = (board_id is defined and board_id and board_id|int == board.id) or (status and board.id == status.board_id) %}
-              <option value="{{ board.id }}" {% if selected %}selected{% endif %}>{{ board.name }}</option>
+          <label class="form-label" for="project_id">Проект</label>
+          <select class="form-select" id="project_id" name="project_id" required>
+            <option value="">Выберите проект</option>
+            {% for project in projects %}
+              {% set selected = (project_id is defined and project_id and project_id|int == project.id) or (status and project.id == status.project_id) %}
+              <option value="{{ project.id }}" {% if selected %}selected{% endif %}>{{ project.name }}</option>
             {% endfor %}
           </select>
-        </div>
-        <div class="mb-3">
-          <label class="form-label" for="position">Позиция</label>
-          <input
-            class="form-control"
-            id="position"
-            name="position"
-            type="number"
-            value="{% if position is defined %}{{ position }}{% elif status %}{{ status.position }}{% else %}{{ "" }}{% endif %}"
-            required
-          >
         </div>
         <div class="mb-3">
           <label class="form-label" for="color">Цвет</label>

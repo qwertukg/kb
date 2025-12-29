@@ -17,7 +17,7 @@
           <tr>
             <th>Имя</th>
             <th>Роль</th>
-            <th>Доска</th>
+            <th>Проект</th>
             <th>Статус успеха</th>
             <th>Статус ошибки</th>
             <th>Рабочий статус</th>
@@ -33,7 +33,7 @@
               <tr>
                 <td>{{ agent.name }}</td>
                 <td>{{ agent.role.name }}</td>
-                <td>{{ agent.board.name if agent.board else "—" }}</td>
+                <td>{{ agent.project.name if agent.project else "—" }}</td>
                 <td>{{ agent.success_status.name if agent.success_status else "—" }}</td>
                 <td>{{ agent.error_status.name if agent.error_status else "—" }}</td>
                 <td>{{ agent.working_status.name if agent.working_status else "—" }}</td>

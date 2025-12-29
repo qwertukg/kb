@@ -10,8 +10,8 @@ from . import bp
 
 @bp.get("/")
 def index() -> str:
-    board_id = request.args.get("board_id", type=int)
-    context = home_service.get_home_context(board_id)
+    project_id = request.args.get("project_id", type=int)
+    context = home_service.get_home_context(project_id)
     if request.args.get("partial") == "1":
         return render_template("partials/kanban.html", **context)
     return render_template("home.html", **context)

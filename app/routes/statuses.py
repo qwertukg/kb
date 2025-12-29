@@ -14,29 +14,27 @@ def list_statuses() -> str:
 
 @bp.get("/statuses/new")
 def new_status() -> str:
-    boards = statuses_service.get_form_boards()
-    return render_template("statuses/form.html", status=None, boards=boards)
+    projects = statuses_service.get_form_projects()
+    return render_template("statuses/form.html", status=None, projects=projects)
 
 
 @bp.post("/statuses")
 def create_status() -> str:
     name = request.form.get("name", "").strip()
-    position = request.form.get("position", "").strip()
     color = request.form.get("color", "").strip()
-    board_id = request.form.get("board_id", "").strip()
+    project_id = request.form.get("project_id", "").strip()
 
-    status, error = statuses_service.create_status(name, position, color, board_id)
+    status, error = statuses_service.create_status(name, color, project_id)
     if error:
-        boards = statuses_service.get_form_boards()
+        projects = statuses_service.get_form_projects()
         flash(error, "danger")
         return render_template(
             "statuses/form.html",
             status=None,
-            boards=boards,
+            projects=projects,
             name=name,
-            position=position,
             color=color,
-            board_id=board_id,
+            project_id=project_id,
         )
 
     flash("Статус создан.", "success")
@@ -50,30 +48,28 @@ def edit_status(status_id: int) -> str:
         flash("Статус не найден.", "danger")
         return redirect(url_for("roles.list_statuses"))
 
-    boards = statuses_service.get_form_boards()
-    return render_template("statuses/form.html", status=status, boards=boards)
+    projects = statuses_service.get_form_projects()
+    return render_template("statuses/form.html", status=status, projects=projects)
 
 
 @bp.post("/statuses/<int:status_id>")
 def update_status(status_id: int) -> str:
     name = request.form.get("name", "").strip()
-    position = request.form.get("position", "").strip()
     color = request.form.get("color", "").strip()
-    board_id = request.form.get("board_id", "").strip()
+    project_id = request.form.get("project_id", "").strip()
 
-    status, error = statuses_service.update_status(status_id, name, position, color, board_id)
+    status, error = statuses_service.update_status(status_id, name, color, project_id)
     if error:
-        boards = statuses_service.get_form_boards()
+        projects = statuses_service.get_form_projects()
         status_obj = status or statuses_service.get_status(status_id)
         flash(error, "danger")
         return render_template(
             "statuses/form.html",
             status=status_obj,
-            boards=boards,
+            projects=projects,
             name=name,
-            position=position,
             color=color,
-            board_id=board_id,
+            project_id=project_id,
         )
 
     flash("Статус обновлен.", "success")

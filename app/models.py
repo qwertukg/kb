@@ -23,7 +23,7 @@ class Agent(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"), nullable=False)
-    board_id: Mapped[int | None] = mapped_column(ForeignKey("boards.id"), nullable=True)
+    project_id: Mapped[int | None] = mapped_column(ForeignKey("projects.id"), nullable=True)
     current_task_id: Mapped[int | None] = mapped_column(ForeignKey("tasks.id"), nullable=True)
     success_status_id: Mapped[int | None] = mapped_column(
         ForeignKey("statuses.id"), nullable=True
@@ -37,7 +37,7 @@ class Agent(Base):
     acceptance_criteria: Mapped[str | None] = mapped_column(Text, nullable=True)
     transfer_criteria: Mapped[str | None] = mapped_column(Text, nullable=True)
     role: Mapped[Role] = relationship(back_populates="agents")
-    board: Mapped[Board | None] = relationship(foreign_keys=[board_id])
+    project: Mapped[Project | None] = relationship(foreign_keys=[project_id])
     current_task: Mapped[Task | None] = relationship(foreign_keys=[current_task_id])
     success_status: Mapped[Status | None] = relationship(foreign_keys=[success_status_id])
     error_status: Mapped[Status | None] = relationship(foreign_keys=[error_status_id])
@@ -46,13 +46,18 @@ class Agent(Base):
     )
 
 
-class Board(Base):
-    __tablename__ = "boards"
+class Project(Base):
+    __tablename__ = "projects"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False, unique=True)
     statuses: Mapped[list["Status"]] = relationship(
-        back_populates="board", cascade="all, delete-orphan"
+        back_populates="project", cascade="all, delete-orphan"
+    )
+    board: Mapped[list["Column"]] = relationship(
+        back_populates="project",
+        cascade="all, delete-orphan",
+        order_by="Column.position",
     )
 
 
@@ -61,13 +66,24 @@ class Status(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
-    position: Mapped[int] = mapped_column(Integer(), nullable=False)
     color: Mapped[str] = mapped_column(String(20), nullable=False)
-    board_id: Mapped[int] = mapped_column(ForeignKey("boards.id"), nullable=False)
-    board: Mapped[Board] = relationship(back_populates="statuses")
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=False)
+    project: Mapped[Project] = relationship(back_populates="statuses")
     working_agents: Mapped[list[Agent]] = relationship(
         back_populates="working_status", foreign_keys="Agent.working_status_id"
     )
+    column: Mapped["Column | None"] = relationship(back_populates="status", uselist=False)
+
+
+class Column(Base):
+    __tablename__ = "columns"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    position: Mapped[int] = mapped_column(Integer(), nullable=False)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=False)
+    status_id: Mapped[int] = mapped_column(ForeignKey("statuses.id"), nullable=False)
+    project: Mapped[Project] = relationship(back_populates="board")
+    status: Mapped[Status] = relationship(back_populates="column")
 
 
 class Parameter(Base):
@@ -83,10 +99,10 @@ class Task(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     status_id: Mapped[int] = mapped_column(ForeignKey("statuses.id"), nullable=False)
-    board_id: Mapped[int] = mapped_column(ForeignKey("boards.id"), nullable=False)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=False)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     status: Mapped[Status] = relationship(foreign_keys=[status_id])
-    board: Mapped[Board] = relationship(foreign_keys=[board_id])
+    project: Mapped[Project] = relationship(foreign_keys=[project_id])
     messages: Mapped[list["Message"]] = relationship(
         back_populates="task", cascade="all, delete-orphan"
     )

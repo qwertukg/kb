@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from ..db import SessionLocal
 from llm.codex import register_codex_agent, remove_codex_agent
-from ..models import Agent, Board, Role, Status
+from ..models import Agent, Project, Role, Status
 from ..services import settings as settings_service
 
 
@@ -18,7 +18,7 @@ def list_agents() -> list[Agent]:
             select(Agent)
             .options(
                 selectinload(Agent.role),
-                selectinload(Agent.board),
+                selectinload(Agent.project),
                 selectinload(Agent.current_task),
                 selectinload(Agent.success_status),
                 selectinload(Agent.error_status),
@@ -36,25 +36,27 @@ def get_agent(agent_id: int) -> Agent | None:
     return session.get(Agent, agent_id)
 
 
-def get_form_data() -> tuple[list[Role], list[Board], list[Status], dict[int, list[str]]]:
+def get_form_data() -> tuple[list[Role], list[Project], list[Status], dict[int, list[str]]]:
     session = SessionLocal()
     roles = session.execute(select(Role).order_by(Role.name)).scalars().all()
-    boards = session.execute(select(Board).order_by(Board.name)).scalars().all()
+    projects = session.execute(select(Project).order_by(Project.name)).scalars().all()
     statuses = session.execute(
-        select(Status).options(selectinload(Status.board)).order_by(Status.board_id, Status.position)
+        select(Status)
+        .options(selectinload(Status.project))
+        .order_by(Status.project_id, Status.name)
     ).scalars().all()
     agents = session.execute(select(Agent).order_by(Agent.name)).scalars().all()
     status_agents: dict[int, list[str]] = defaultdict(list)
     for agent in agents:
         if agent.working_status_id:
             status_agents[agent.working_status_id].append(agent.name)
-    return roles, boards, statuses, status_agents
+    return roles, projects, statuses, status_agents
 
 
 def create_agent(
     name: str,
     role_id: str,
-    board_id: str,
+    project_id: str,
     success_status_id: str,
     error_status_id: str,
     working_status_id: str,
@@ -64,21 +66,21 @@ def create_agent(
     if (
         not name
         or not role_id
-        or not board_id
+        or not project_id
         or not success_status_id
         or not error_status_id
         or not working_status_id
     ):
-        return None, "Имя, роль, доска и статусы обязательны."
+        return None, "Имя, роль, проект и статусы обязательны."
 
     session = SessionLocal()
     role = session.get(Role, int(role_id))
     if not role:
         return None, "Роль не найдена."
 
-    board = session.get(Board, int(board_id))
-    if not board:
-        return None, "Доска не найдена."
+    project = session.get(Project, int(project_id))
+    if not project:
+        return None, "Проект не найден."
 
     success_status = session.get(Status, int(success_status_id))
     error_status = session.get(Status, int(error_status_id))
@@ -87,16 +89,16 @@ def create_agent(
         not success_status
         or not error_status
         or not working_status
-        or success_status.board_id != board.id
-        or error_status.board_id != board.id
-        or working_status.board_id != board.id
+        or success_status.project_id != project.id
+        or error_status.project_id != project.id
+        or working_status.project_id != project.id
     ):
-        return None, "Статусы должны принадлежать выбранной доске."
+        return None, "Статусы должны принадлежать выбранному проекту."
 
     agent = Agent(
         name=name,
         role_id=role.id,
-        board_id=board.id,
+        project_id=project.id,
         success_status_id=success_status.id,
         error_status_id=error_status.id,
         working_status_id=working_status.id,
@@ -115,7 +117,7 @@ def update_agent(
     agent_id: int,
     name: str,
     role_id: str,
-    board_id: str,
+    project_id: str,
     success_status_id: str,
     error_status_id: str,
     working_status_id: str,
@@ -130,20 +132,20 @@ def update_agent(
     if (
         not name
         or not role_id
-        or not board_id
+        or not project_id
         or not success_status_id
         or not error_status_id
         or not working_status_id
     ):
-        return None, "Имя, роль, доска и статусы обязательны."
+        return None, "Имя, роль, проект и статусы обязательны."
 
     role = session.get(Role, int(role_id))
     if not role:
         return None, "Роль не найдена."
 
-    board = session.get(Board, int(board_id))
-    if not board:
-        return None, "Доска не найдена."
+    project = session.get(Project, int(project_id))
+    if not project:
+        return None, "Проект не найден."
 
     success_status = session.get(Status, int(success_status_id))
     error_status = session.get(Status, int(error_status_id))
@@ -152,16 +154,16 @@ def update_agent(
         not success_status
         or not error_status
         or not working_status
-        or success_status.board_id != board.id
-        or error_status.board_id != board.id
-        or working_status.board_id != board.id
+        or success_status.project_id != project.id
+        or error_status.project_id != project.id
+        or working_status.project_id != project.id
     ):
-        return None, "Статусы должны принадлежать выбранной доске."
+        return None, "Статусы должны принадлежать выбранному проекту."
 
     previous_working_status_id = agent.working_status_id
     agent.name = name
     agent.role_id = role.id
-    agent.board_id = board.id
+    agent.project_id = project.id
     agent.success_status_id = success_status.id
     agent.error_status_id = error_status.id
     agent.working_status_id = working_status.id

@@ -62,15 +62,15 @@
           <div class="sidebar-sticky">
             <ul class="nav flex-column">
               <li class="nav-item mt-2">
-                <span class="text-uppercase text-muted small">Доски</span>
+                <span class="text-uppercase text-muted small">Проекты</span>
               </li>
-              {% for board in menu_boards %}
+              {% for project in menu_projects %}
                 <li class="nav-item">
                   <a
-                    class="nav-link {% if request.args.get('board_id') == board.id|string %}active{% endif %}"
-                    href="{{ url_for('roles.index', board_id=board.id) }}"
+                    class="nav-link {% if request.args.get('project_id') == project.id|string %}active{% endif %}"
+                    href="{{ url_for('roles.index', project_id=project.id) }}"
                   >
-                    {{ board.name }}
+                    {{ project.name }}
                   </a>
                 </li>
               {% endfor %}
@@ -78,8 +78,8 @@
                 <span class="text-uppercase text-muted small">Канбан</span>
               </li>
               <li class="nav-item">
-                <a class="nav-link {% if request.path.startswith('/boards') %}active{% endif %}" href="{{ url_for('roles.list_boards') }}">
-                  Доски
+                <a class="nav-link {% if request.path.startswith('/projects') %}active{% endif %}" href="{{ url_for('roles.list_projects') }}">
+                  Проекты
                 </a>
               </li>
               <li class="nav-item">

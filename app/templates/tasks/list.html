@@ -17,7 +17,7 @@
           <tr>
             <th>Заголовок</th>
             <th>Сообщения</th>
-            <th>Доска</th>
+            <th>Проект</th>
             <th>Статус</th>
             <th class="text-end">Действия</th>
           </tr>
@@ -36,7 +36,7 @@
                     —
                   {% endif %}
                 </td>
-                <td>{{ task.board.name }}</td>
+                <td>{{ task.project.name }}</td>
                 <td>{{ task.status.name }}</td>
                 <td class="text-end">
                   <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('roles.edit_task', task_id=task.id) }}" aria-label="Редактировать" title="Редактировать">

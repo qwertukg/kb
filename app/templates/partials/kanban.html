@@ -1,75 +1,77 @@
-{% if statuses_by_board %}
-  {% for board_id, statuses in statuses_by_board.items() %}
-    {% if not current_board_name %}
-      {% set board_name = statuses[0].board.name if statuses else "Доска" %}
+{% if statuses_by_project %}
+  {% for project_id, statuses in statuses_by_project.items() %}
+    {% if not current_project_name %}
+      {% set project_name = statuses[0].project.name if statuses else "Проект" %}
       <hr class="my-3">
-      <h5 class="mb-3">{{ board_name }}</h5>
+      <h5 class="mb-3">{{ project_name }}</h5>
     {% endif %}
     <div class="mb-4">
-      <div class="row g-3">
-        {% for status in statuses %}
-          <div class="col-12 col-md-4 col-lg-3">
-            <div class="card shadow-sm h-100" style="min-height: calc(100vh - 140px);">
-              <div class="card-header">
-                <div class="d-flex align-items-center gap-2">
-                  <span class="d-inline-block rounded-circle" style="width: 10px; height: 10px; background: {{ status.color }};"></span>
-                  <div class="fw-semibold">{{ status.name }}</div>
+      <div class="kanban-scroll" style="overflow-x: auto; overflow-y: hidden; padding-bottom: 1px;">
+        <div class="kanban-row" style="display: flex; flex-wrap: nowrap; gap: 1rem;">
+          {% for status in statuses %}
+            <div class="kanban-column" style="flex: 0 0 320px;">
+              <div class="card shadow-sm h-100" style="min-height: calc(100vh - 140px);">
+                <div class="card-header">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="d-inline-block rounded-circle" style="width: 10px; height: 10px; background: {{ status.color }};"></span>
+                    <div class="fw-semibold">{{ status.name }}</div>
+                  </div>
+                  {% set free_agents = free_agents_by_status.get(status.id, []) %}
+                  {% if free_agents %}
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                      {% for agent in free_agents %}
+                        <span class="badge" style="background-color: {{ status.color }}; font-size: 0.7rem;">{{ agent.name }}</span>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
                 </div>
-                {% set free_agents = free_agents_by_status.get(status.id, []) %}
-                {% if free_agents %}
-                  <div class="d-flex flex-wrap gap-2 mt-2">
-                    {% for agent in free_agents %}
-                      <span class="badge" style="background-color: {{ status.color }}; font-size: 0.7rem;">{{ agent.name }}</span>
-                    {% endfor %}
-                  </div>
-                {% endif %}
-              </div>
-              <div class="card-body">
-                {% set assigned_tasks = tasks_by_status.get(status.id, []) %}
-                {% if assigned_tasks %}
-                  <div class="d-grid gap-3">
-                    {% for task, agent in assigned_tasks %}
-                      <div class="card">
-                        <div class="card-header py-2">
-                          <div>
-                            <a class="small" href="{{ url_for('roles.edit_task', task_id=task.id) }}">#{{ task.id }}</a>
-                            <span class="fw-semibold small">{{ task.title or "—" }}</span>
-                          </div>
-                          {% if agent %}
+                <div class="card-body">
+                  {% set assigned_tasks = tasks_by_status.get(status.id, []) %}
+                  {% if assigned_tasks %}
+                    <div class="d-grid gap-3">
+                      {% for task, agent in assigned_tasks %}
+                        <div class="card">
+                          <div class="card-header py-2">
                             <div>
-                              <span class="badge" style="background-color: {{ status.color }}; font-size: 0.7rem;">{{ agent.name }}</span>
+                              <a class="small" href="{{ url_for('roles.edit_task', task_id=task.id) }}">#{{ task.id }}</a>
+                              <span class="fw-semibold small">{{ task.title or "—" }}</span>
                             </div>
-                          {% endif %}
+                            {% if agent %}
+                              <div>
+                                <span class="badge" style="background-color: {{ status.color }}; font-size: 0.7rem;">{{ agent.name }}</span>
+                              </div>
+                            {% endif %}
+                          </div>
+                          <div class="card-body p-2 js-messages-scroll" data-task-id="{{ task.id }}" style="height: 140px; overflow-y: auto;">
+                            {% set ordered_messages = task.messages | sort(attribute='id') %}
+                            {% for message in ordered_messages %}
+                              <div class="border rounded bg-light p-2 mb-2 js-message">
+                                <div class="fw-semibold small mb-1">{{ message.author.name }}</div>
+                                <div class="small">{{ message.text }}</div>
+                              </div>
+                            {% endfor %}
+                          </div>
+                          {% set message_count = ordered_messages | length %}
+                          {% set author_ids = ordered_messages | map(attribute='author_id') | unique | list %}
+                          <div class="card-footer d-flex justify-content-end gap-3 py-2">
+                            <span class="d-inline-flex align-items-center gap-1">
+                              <i class="bi bi-chat-left-text"></i>
+                              <span class="small text-muted">{{ message_count }}</span>
+                            </span>
+                            <span class="d-inline-flex align-items-center gap-1">
+                              <i class="bi bi-people"></i>
+                              <span class="small text-muted">{{ author_ids | length }}</span>
+                            </span>
+                          </div>
                         </div>
-                        <div class="card-body p-2 js-messages-scroll" data-task-id="{{ task.id }}" style="height: 140px; overflow-y: auto;">
-                          {% set ordered_messages = task.messages | sort(attribute='id') %}
-                          {% for message in ordered_messages %}
-                            <div class="border rounded bg-light p-2 mb-2 js-message">
-                              <div class="fw-semibold small mb-1">{{ message.author.name }}</div>
-                              <div class="small">{{ message.text }}</div>
-                            </div>
-                          {% endfor %}
-                        </div>
-                        {% set message_count = ordered_messages | length %}
-                        {% set author_ids = ordered_messages | map(attribute='author_id') | unique | list %}
-                        <div class="card-footer d-flex justify-content-end gap-3 py-2">
-                          <span class="d-inline-flex align-items-center gap-1">
-                            <i class="bi bi-chat-left-text"></i>
-                            <span class="small text-muted">{{ message_count }}</span>
-                          </span>
-                          <span class="d-inline-flex align-items-center gap-1">
-                            <i class="bi bi-people"></i>
-                            <span class="small text-muted">{{ author_ids | length }}</span>
-                          </span>
-                        </div>
-                      </div>
-                    {% endfor %}
-                  </div>
-                {% endif %}
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
               </div>
             </div>
-          </div>
-        {% endfor %}
+          {% endfor %}
+        </div>
       </div>
     </div>
   {% endfor %}

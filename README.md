@@ -27,6 +27,14 @@ docker build -t kb .
 docker run --rm -p 8008:8008 kb
 ```
 
+Чтобы контейнер работал с локальной SQLite-базой, смонтируйте файл:
+
+```bash
+docker run --rm -p 8008:8008 \
+  -v /Users/daniil/Projects/kb/kb.db:/app/kb.db \
+  kb
+```
+
 ## Сиды (опционально)
 
 ```bash

@@ -16,8 +16,7 @@
         <thead>
           <tr>
             <th>Имя</th>
-            <th>Доска</th>
-            <th>Позиция</th>
+            <th>Проект</th>
             <th>Цвет</th>
             <th class="text-end">Действия</th>
           </tr>
@@ -27,8 +26,7 @@
             {% for status in statuses %}
               <tr>
                 <td>{{ status.name }}</td>
-                <td>{{ status.board.name }}</td>
-                <td>{{ status.position }}</td>
+                <td>{{ status.project.name }}</td>
                 <td>
                   <span class="d-inline-block rounded" style="width: 20px; height: 20px; background: {{ status.color }};"></span>
                   <span class="ms-2 text-muted">{{ status.color }}</span>
@@ -47,7 +45,7 @@
             {% endfor %}
           {% else %}
             <tr>
-              <td colspan="5" class="text-center text-muted py-4">Статусов пока нет.</td>
+              <td colspan="4" class="text-center text-muted py-4">Статусов пока нет.</td>
             </tr>
           {% endif %}
         </tbody>

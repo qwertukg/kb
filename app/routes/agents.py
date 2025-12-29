@@ -13,12 +13,12 @@ def list_agents() -> str:
 
 @bp.get("/agents/new")
 def new_agent() -> str:
-    roles, boards, statuses, status_agents = agents_service.get_form_data()
+    roles, projects, statuses, status_agents = agents_service.get_form_data()
     return render_template(
         "agents/form.html",
         agent=None,
         roles=roles,
-        boards=boards,
+        projects=projects,
         statuses=statuses,
         status_agents=status_agents,
     )
@@ -28,7 +28,7 @@ def new_agent() -> str:
 def create_agent() -> str:
     name = request.form.get("name", "").strip()
     role_id = request.form.get("role_id", "").strip()
-    board_id = request.form.get("board_id", "").strip()
+    project_id = request.form.get("project_id", "").strip()
     success_status_id = request.form.get("success_status_id", "").strip()
     error_status_id = request.form.get("error_status_id", "").strip()
     working_status_id = request.form.get("working_status_id", "").strip()
@@ -38,7 +38,7 @@ def create_agent() -> str:
     agent, error = agents_service.create_agent(
         name,
         role_id,
-        board_id,
+        project_id,
         success_status_id,
         error_status_id,
         working_status_id,
@@ -46,18 +46,18 @@ def create_agent() -> str:
         transfer_criteria,
     )
     if error:
-        roles, boards, statuses, status_agents = agents_service.get_form_data()
+        roles, projects, statuses, status_agents = agents_service.get_form_data()
         flash(error, "danger")
         return render_template(
             "agents/form.html",
             agent=None,
             roles=roles,
-            boards=boards,
+            projects=projects,
             statuses=statuses,
             status_agents=status_agents,
             name=name,
             role_id=role_id,
-            board_id=board_id,
+            project_id=project_id,
             success_status_id=success_status_id,
             error_status_id=error_status_id,
             working_status_id=working_status_id,
@@ -76,12 +76,12 @@ def edit_agent(agent_id: int) -> str:
         flash("Агент не найден.", "danger")
         return redirect(url_for("roles.list_agents"))
 
-    roles, boards, statuses, status_agents = agents_service.get_form_data()
+    roles, projects, statuses, status_agents = agents_service.get_form_data()
     return render_template(
         "agents/form.html",
         agent=agent,
         roles=roles,
-        boards=boards,
+        projects=projects,
         statuses=statuses,
         status_agents=status_agents,
     )
@@ -91,7 +91,7 @@ def edit_agent(agent_id: int) -> str:
 def update_agent(agent_id: int) -> str:
     name = request.form.get("name", "").strip()
     role_id = request.form.get("role_id", "").strip()
-    board_id = request.form.get("board_id", "").strip()
+    project_id = request.form.get("project_id", "").strip()
     success_status_id = request.form.get("success_status_id", "").strip()
     error_status_id = request.form.get("error_status_id", "").strip()
     working_status_id = request.form.get("working_status_id", "").strip()
@@ -102,7 +102,7 @@ def update_agent(agent_id: int) -> str:
         agent_id,
         name,
         role_id,
-        board_id,
+        project_id,
         success_status_id,
         error_status_id,
         working_status_id,
@@ -110,19 +110,19 @@ def update_agent(agent_id: int) -> str:
         transfer_criteria,
     )
     if error:
-        roles, boards, statuses, status_agents = agents_service.get_form_data()
+        roles, projects, statuses, status_agents = agents_service.get_form_data()
         agent_obj = agent or agents_service.get_agent(agent_id)
         flash(error, "danger")
         return render_template(
             "agents/form.html",
             agent=agent_obj,
             roles=roles,
-            boards=boards,
+            projects=projects,
             statuses=statuses,
             status_agents=status_agents,
             name=name,
             role_id=role_id,
-            board_id=board_id,
+            project_id=project_id,
             success_status_id=success_status_id,
             error_status_id=error_status_id,
             working_status_id=working_status_id,

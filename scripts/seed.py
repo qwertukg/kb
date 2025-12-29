@@ -13,15 +13,16 @@ if APP_ROOT not in sys.path:
     sys.path.insert(0, APP_ROOT)
 
 from db import SessionLocal
-from models import Agent, Board, Message, Role, Status, Task
+from models import Agent, Column, Message, Project, Role, Status, Task
 
 
 def clear_data(session) -> None:
     session.execute(sa.delete(Message))
     session.execute(sa.delete(Task))
     session.execute(sa.delete(Agent))
+    session.execute(sa.delete(Column))
     session.execute(sa.delete(Status))
-    session.execute(sa.delete(Board))
+    session.execute(sa.delete(Project))
     session.execute(sa.delete(Role))
 
 
@@ -30,23 +31,38 @@ def main() -> None:
     try:
         clear_data(session)
 
-        board = Board(name="Разработка")
-        session.add(board)
+        project = Project(name="ИС Библиотека")
+        session.add(project)
         session.flush()
 
         statuses = [
-            Status(name="Бэклог", position=1, color="#6c757d", board_id=board.id),
-            Status(name="Разработка", position=2, color="#0d6efd", board_id=board.id),
-            Status(name="Готово", position=3, color="#198754", board_id=board.id),
+            Status(name="Бэклог", color="#6c757d", project_id=project.id),
+            Status(name="Разработка", color="#0d6efd", project_id=project.id),
+            Status(name="Тестирование", color="#ffc107", project_id=project.id),
+            Status(name="Готово", color="#198754", project_id=project.id),
         ]
         session.add_all(statuses)
         session.flush()
+        session.add_all(
+            [
+                Column(position=1, project_id=project.id, status_id=statuses[0].id),
+                Column(position=2, project_id=project.id, status_id=statuses[1].id),
+                Column(position=3, project_id=project.id, status_id=statuses[2].id),
+                Column(position=4, project_id=project.id, status_id=statuses[3].id),
+            ]
+        )
 
         role = Role(
             name="Разработчик",
-            instruction="Проектирование и реализация функционала, код-ревью, документация.",
+            instruction="- пишешь код на Python",
         )
         session.add(role)
+        session.flush()
+        tester_role = Role(
+            name="Тестировщик",
+            instruction="- пишешь юнит тесты (если нужно)\n- пишешь интеграционные тесты (если нужно)\n- пишешь UI тесты (если нужно)\n ",
+        )
+        session.add(tester_role)
         session.flush()
 
         status_by_name = {status.name: status for status in statuses}
@@ -54,20 +70,31 @@ def main() -> None:
         agent = Agent(
             name="Колян",
             role_id=role.id,
-            board_id=board.id,
+            project_id=project.id,
             working_status_id=status_by_name["Разработка"].id,
-            success_status_id=status_by_name["Готово"].id,
+            success_status_id=status_by_name["Тестирование"].id,
             error_status_id=status_by_name["Бэклог"].id,
-            acceptance_criteria="Задача выполнена и результат сохранен в файл.",
-            transfer_criteria="Ответ сохранен, файл доступен в sandbox.",
+            acceptance_criteria="- задача относится к теме проекта",
+            transfer_criteria="- код по задаче написан\n- список измененных/созданных файлов в ответе",
         )
         session.add(agent)
         session.flush()
 
+        tester = Agent(
+            name="Леночка",
+            role_id=tester_role.id,
+            project_id=project.id,
+            working_status_id=status_by_name["Тестирование"].id,
+            success_status_id=status_by_name["Готово"].id,
+            error_status_id=status_by_name["Бэклог"].id,
+        )
+        session.add(tester)
+        session.flush()
+
         task = Task(
-            title="скажи сколько сейчас времени и сохрани ответ в файл TIME.md",
-            board_id=board.id,
-            status_id=status_by_name["Разработка"].id,
+            title="Тест времени",
+            project_id=project.id,
+            status_id=status_by_name["Бэклог"].id,
         )
         session.add(task)
         session.flush()
@@ -76,7 +103,7 @@ def main() -> None:
             Message(
                 task_id=task.id,
                 author_id=agent.id,
-                text="скажи сколько сейчас времени и сохрани ответ в файл TIME.md",
+                text="Напиши программу которая возвращает сегодняшнюю дату",
             )
         )
 

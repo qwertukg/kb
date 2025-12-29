@@ -5,6 +5,8 @@
 
 ---
 
+## ОТВЕЧАЙ ВСЕГДА НА РУССКОМ ЯЗЫКЕ
+
 ## 1) Команды (setup / run / checks)
 Сначала проверь в репозитории, что реально используется: `pyproject.toml`, `requirements*.txt`, `Makefile`, `justfile`, `docker-compose.yml`, `.pre-commit-config.yaml`.
 

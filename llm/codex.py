@@ -5,8 +5,6 @@ import os
 import sys
 
 import anyio
-from mcp.client.session import ClientSession
-from mcp.client.stdio import StdioServerParameters, stdio_client
 
 from app.models import Agent
 from app.services import settings as settings_service
@@ -18,7 +16,12 @@ class CodexAgent:
     api_key: str | None
     model: str | None
 
-    def run(self, prompt: str) -> str | None:
+    def run(
+        self,
+        prompt: str,
+        task_id: int | None = None,
+        status_id: int | None = None,
+    ) -> str | None:
         if not prompt:
             return None
         if not self.api_key:
@@ -30,6 +33,8 @@ class CodexAgent:
             instructions=self.instructions,
             api_key=self.api_key,
             model=self.model,
+            task_id=task_id,
+            status_id=status_id,
         )
         return response or None
 
@@ -99,7 +104,17 @@ def _run_mcp_codex(
     instructions: str | None,
     api_key: str,
     model: str,
+    task_id: int | None = None,
+    status_id: int | None = None,
 ) -> str | None:
+    try:
+        from mcp.client.session import ClientSession
+        from mcp.client.stdio import StdioServerParameters, stdio_client
+    except ModuleNotFoundError as exc:  # pragma: no cover - environment-specific
+        raise RuntimeError(
+            "Пакет 'mcp' не установлен. Установите зависимости или запускайте через Docker."
+        ) from exc
+
     async def _run() -> str | None:
         server_params = StdioServerParameters(
             command=sys.executable,
@@ -115,6 +130,8 @@ def _run_mcp_codex(
                         "instructions": instructions or "",
                         "api_key": api_key,
                         "model": model,
+                        "task_id": task_id,
+                        "status_id": status_id,
                     },
                 )
         if getattr(result, "isError", False):
@@ -126,21 +143,27 @@ def _run_mcp_codex(
     return anyio.run(_run)
 
 
-def _is_task_completed(response: str) -> bool:
-    normalized = response.strip().lower()
-    if not normalized:
-        return False
-    success_prefixes = (
-        "готово",
-        "сделал",
-        "сделано",
-        "выполнено",
-        "выполнена",
-        "задача выполнена",
-        "done",
-        "completed",
-    )
-    return any(normalized.startswith(prefix) for prefix in success_prefixes)
+def _extract_agent_status(response: str) -> tuple[str, bool | None]:
+    lines = response.splitlines()
+    status_line_index = None
+    status_value = None
+    for index in range(len(lines) - 1, -1, -1):
+        line = lines[index].strip()
+        if not line:
+            continue
+        if "STATUS:" not in line.upper():
+            continue
+        status_line_index = index
+        status_value = line.split(":", 1)[-1].strip().upper()
+        break
+    if status_line_index is None or status_value is None:
+        return response, None
+    cleaned = "\n".join(line for i, line in enumerate(lines) if i != status_line_index).strip()
+    if status_value == "SUCCESS":
+        return cleaned, True
+    if status_value == "ERROR":
+        return cleaned, False
+    return cleaned, None
 
 
 def run_task_prompt(
@@ -148,13 +171,25 @@ def run_task_prompt(
     prompt: str,
     api_key: str | None,
     model: str | None,
+    task_id: int | None = None,
+    status_id: int | None = None,
 ) -> tuple[str | None, bool, str | None]:
     codex_agent = get_codex_agent(agent.id)
     if not codex_agent or codex_agent.api_key != api_key or codex_agent.model != model:
         codex_agent = register_codex_agent(agent, api_key, model)
 
+    status_instruction = (
+        "\n\nВ конце ответа добавь строку строго в формате:\n"
+        "STATUS: SUCCESS\n"
+        "или\n"
+        "STATUS: ERROR\n"
+    )
     try:
-        response = codex_agent.run(prompt)
+        response = codex_agent.run(
+            f"{prompt}{status_instruction}",
+            task_id=task_id,
+            status_id=status_id,
+        )
     except Exception as exc:  # pragma: no cover - safety net
         error_message = f"Ошибка Codex-agent: {exc}"
         return None, False, error_message
@@ -162,4 +197,8 @@ def run_task_prompt(
     if not response:
         return None, False, "Codex-agent не вернул результат."
 
-    return response, _is_task_completed(response), None
+    cleaned_response, is_completed = _extract_agent_status(response)
+    if is_completed is None:
+        print("[codex] Агент не указал статус, используем ERROR.")
+        return cleaned_response, False, None
+    return cleaned_response, is_completed, None

@@ -2,11 +2,17 @@ from __future__ import annotations
 
 import os
 from logging.config import fileConfig
+import sys
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from app.models import Base
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+APP_ROOT = os.path.join(ROOT, "app")
+if APP_ROOT not in sys.path:
+    sys.path.insert(0, APP_ROOT)
+
+from models import Base
 
 config = context.config
 

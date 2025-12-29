@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}AutoKanban — Доски{% endblock %}
+{% block title %}AutoKanban — Проекты{% endblock %}
 
 {% block content %}
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h3 mb-0">Доски</h1>
-    <a class="btn btn-primary" href="{{ url_for('roles.new_board') }}" aria-label="Создать доску" title="Создать доску">
+    <h1 class="h3 mb-0">Проекты</h1>
+    <a class="btn btn-primary" href="{{ url_for('roles.new_project') }}" aria-label="Создать проект" title="Создать проект">
       <i class="bi bi-plus-lg"></i>
     </a>
   </div>
@@ -16,21 +16,21 @@
         <thead>
           <tr>
             <th>Имя</th>
-            <th>Статусы</th>
+            <th>Доска</th>
             <th class="text-end">Действия</th>
           </tr>
         </thead>
         <tbody>
-          {% if boards %}
-            {% for board in boards %}
+          {% if projects %}
+            {% for project in projects %}
               <tr>
-                <td>{{ board.name }}</td>
-                <td>{{ board.statuses | length }}</td>
+                <td>{{ project.name }}</td>
+                <td>{{ project.board | length }}</td>
                 <td class="text-end">
-                  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('roles.edit_board', board_id=board.id) }}" aria-label="Редактировать" title="Редактировать">
+                  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('roles.edit_project', project_id=project.id) }}" aria-label="Редактировать" title="Редактировать">
                     <i class="bi bi-pencil"></i>
                   </a>
-                  <form class="d-inline" method="post" action="{{ url_for('roles.delete_board', board_id=board.id) }}" onsubmit="return confirm('Удалить доску?');">
+                  <form class="d-inline" method="post" action="{{ url_for('roles.delete_project', project_id=project.id) }}" onsubmit="return confirm('Удалить проект?');">
                     <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Удалить" title="Удалить">
                       <i class="bi bi-trash"></i>
                     </button>
@@ -40,7 +40,7 @@
             {% endfor %}
           {% else %}
             <tr>
-              <td colspan="3" class="text-center text-muted py-4">Досок пока нет.</td>
+              <td colspan="3" class="text-center text-muted py-4">Проектов пока нет.</td>
             </tr>
           {% endif %}
         </tbody>

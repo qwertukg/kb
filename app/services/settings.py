@@ -19,8 +19,13 @@ def get_parameter(parameter_id: int) -> Parameter | None:
 def get_parameter_value(key: str) -> str | None:
     if not key:
         return None
-    session = SessionLocal()
-    return session.execute(select(Parameter.value).where(Parameter.key == key)).scalar_one_or_none()
+    session = SessionLocal.session_factory()
+    try:
+        return session.execute(
+            select(Parameter.value).where(Parameter.key == key)
+        ).scalar_one_or_none()
+    finally:
+        session.close()
 
 
 def create_parameter(key: str, value: str) -> tuple[Parameter | None, str | None]:
