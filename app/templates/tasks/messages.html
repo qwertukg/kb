@@ -1,6 +1,9 @@
 {% for message in messages %}
   <div class="border rounded bg-light p-2 mb-2 js-message">
-    <div class="fw-semibold small mb-1">{{ message.author.name }}</div>
+    {% set agent_color = message.author.working_status.color if message.author.working_status else None %}
+    <div class="fw-semibold small mb-1"{% if agent_color %} style="color: {{ agent_color }};"{% endif %}>
+      {{ message.author.name }}
+    </div>
     <div class="small">{{ message.text }}</div>
   </div>
 {% endfor %}

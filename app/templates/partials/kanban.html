@@ -46,7 +46,12 @@
                             </div>
                           {% endif %}
                         </div>
-                          <div class="card-body p-2 js-messages-scroll" data-task-id="{{ task.id }}" style="height: 140px; overflow-y: auto;">
+                          <div
+                            class="card-body p-2 js-messages-scroll"
+                            data-task-id="{{ task.id }}"
+                            data-base-height="140"
+                            style="height: 140px; overflow-y: auto;"
+                          >
                             {% set ordered_messages = task.messages | sort(attribute='id') %}
                             {% set messages = ordered_messages %}
                             {% include "tasks/messages.html" %}

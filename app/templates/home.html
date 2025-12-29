@@ -16,12 +16,31 @@
   ></script>
   <script>
     const kanbanRoot = document.getElementById("kanban-root");
+    const DEFAULT_MESSAGE_HEIGHT = 140;
     const scrollMessagesToBottom = (container) => {
       const containers = container
         ? [container]
         : Array.from(kanbanRoot.querySelectorAll(".js-messages-scroll"));
       containers.forEach((item) => {
         item.scrollTop = item.scrollHeight;
+      });
+    };
+    const adjustMessagesHeights = (container) => {
+      const containers = container
+        ? [container]
+        : Array.from(kanbanRoot.querySelectorAll(".js-messages-scroll"));
+      containers.forEach((item) => {
+        const baseHeight = Number(item.dataset.baseHeight) || DEFAULT_MESSAGE_HEIGHT;
+        const lastMessage = item.querySelector(".js-message:last-of-type");
+        let targetHeight = baseHeight;
+        if (lastMessage) {
+          const styles = window.getComputedStyle(item);
+          const paddingTop = parseFloat(styles.paddingTop) || 0;
+          const paddingBottom = parseFloat(styles.paddingBottom) || 0;
+          const lastHeight = Math.ceil(lastMessage.getBoundingClientRect().height);
+          targetHeight = Math.max(baseHeight, lastHeight + paddingTop + paddingBottom);
+        }
+        item.style.height = `${targetHeight}px`;
       });
     };
     const removeFreeAgentBadge = (statusId, agentName) => {
@@ -112,7 +131,10 @@
       const authorCount = card.querySelector(".js-author-count");
       if (messagesContainer && payload.messages_html !== undefined) {
         messagesContainer.innerHTML = payload.messages_html;
-        requestAnimationFrame(() => scrollMessagesToBottom(messagesContainer));
+        requestAnimationFrame(() => {
+          adjustMessagesHeights(messagesContainer);
+          scrollMessagesToBottom(messagesContainer);
+        });
       }
       if (messageCount && payload.message_count !== undefined) {
         messageCount.textContent = payload.message_count;
@@ -121,6 +143,7 @@
         authorCount.textContent = payload.author_count;
       }
       if (!messagesContainer) {
+        adjustMessagesHeights();
         scrollMessagesToBottom();
       }
       if (payload.agent_name) {
@@ -141,6 +164,7 @@
       }
       target.appendChild(card);
       card.dataset.statusId = statusId;
+      adjustMessagesHeights(card.querySelector(".js-messages-scroll"));
     };
     const setTaskSpinner = (taskId, isActive) => {
       const card = kanbanRoot.querySelector(`[data-task-id="${taskId}"]`);
@@ -237,6 +261,7 @@
       });
     }
     const initialScroll = () => {
+      adjustMessagesHeights();
       requestAnimationFrame(() => scrollMessagesToBottom());
     };
     if (document.readyState === "loading") {
