@@ -9,6 +9,7 @@ from .db import SessionLocal
 from llm import codex as codex_llm
 from .models import Project
 from .routes import bp
+from .socketio import socketio
 from .services import settings as settings_service
 
 
@@ -22,6 +23,7 @@ def create_app() -> Flask:
         app.config["TRUSTED_HOSTS"] = ["localhost", "127.0.0.1", "0.0.0.0", "::1"]
 
     app.register_blueprint(bp)
+    socketio.init_app(app)
     codex_llm.write_codex_config(settings_service.get_parameter_value("CONFIG"))
     from .listeners import task_status_listener  # noqa: F401
 

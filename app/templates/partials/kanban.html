@@ -27,10 +27,10 @@
                 </div>
                 <div class="card-body">
                   {% set assigned_tasks = tasks_by_status.get(status.id, []) %}
-                  {% if assigned_tasks %}
-                    <div class="d-grid gap-3">
+                  <div class="d-grid gap-3 js-status-tasks" data-status-id="{{ status.id }}">
+                    {% if assigned_tasks %}
                       {% for task, agent in assigned_tasks %}
-                        <div class="card">
+                        <div class="card" data-task-id="{{ task.id }}">
                           <div class="card-header py-2">
                             <div>
                               <a class="small" href="{{ url_for('roles.edit_task', task_id=task.id) }}">#{{ task.id }}</a>
@@ -44,29 +44,25 @@
                           </div>
                           <div class="card-body p-2 js-messages-scroll" data-task-id="{{ task.id }}" style="height: 140px; overflow-y: auto;">
                             {% set ordered_messages = task.messages | sort(attribute='id') %}
-                            {% for message in ordered_messages %}
-                              <div class="border rounded bg-light p-2 mb-2 js-message">
-                                <div class="fw-semibold small mb-1">{{ message.author.name }}</div>
-                                <div class="small">{{ message.text }}</div>
-                              </div>
-                            {% endfor %}
+                            {% set messages = ordered_messages %}
+                            {% include "tasks/messages.html" %}
                           </div>
                           {% set message_count = ordered_messages | length %}
                           {% set author_ids = ordered_messages | map(attribute='author_id') | unique | list %}
                           <div class="card-footer d-flex justify-content-end gap-3 py-2">
                             <span class="d-inline-flex align-items-center gap-1">
                               <i class="bi bi-chat-left-text"></i>
-                              <span class="small text-muted">{{ message_count }}</span>
+                              <span class="small text-muted js-message-count">{{ message_count }}</span>
                             </span>
                             <span class="d-inline-flex align-items-center gap-1">
                               <i class="bi bi-people"></i>
-                              <span class="small text-muted">{{ author_ids | length }}</span>
+                              <span class="small text-muted js-author-count">{{ author_ids | length }}</span>
                             </span>
                           </div>
                         </div>
                       {% endfor %}
-                    </div>
-                  {% endif %}
+                    {% endif %}
+                  </div>
                 </div>
               </div>
             </div>

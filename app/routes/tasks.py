@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from flask import flash, redirect, render_template, request, url_for
+from flask import flash, jsonify, redirect, render_template, request, url_for
 from ..services import tasks as tasks_service
 from . import bp
 
@@ -125,3 +125,24 @@ def delete_task(task_id: int) -> str:
 
     flash("Задача удалена.", "success")
     return redirect(url_for("roles.list_tasks"))
+
+
+@bp.get("/tasks/<int:task_id>/messages")
+def task_messages(task_id: int):
+    task = tasks_service.get_task_with_messages(task_id)
+    if not task:
+        return jsonify({"error": "Задача не найдена."}), 404
+
+    ordered_messages = sorted(task.messages, key=lambda message: message.id)
+    author_ids = {message.author_id for message in ordered_messages}
+    messages_html = render_template(
+        "tasks/messages.html",
+        messages=ordered_messages,
+    )
+    return jsonify(
+        {
+            "messages_html": messages_html,
+            "message_count": len(ordered_messages),
+            "author_count": len(author_ids),
+        }
+    )

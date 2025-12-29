@@ -61,6 +61,19 @@ def get_task(task_id: int) -> Task | None:
     return session.get(Task, task_id)
 
 
+def get_task_with_messages(task_id: int) -> Task | None:
+    session = SessionLocal()
+    return (
+        session.execute(
+            select(Task)
+            .options(selectinload(Task.messages).selectinload(Message.author))
+            .where(Task.id == task_id)
+        )
+        .scalars()
+        .first()
+    )
+
+
 def get_form_data() -> tuple[list[Project], list[Status], list[Agent], dict[int, list[str]]]:
     session = SessionLocal()
     projects = session.execute(select(Project).order_by(Project.name)).scalars().all()

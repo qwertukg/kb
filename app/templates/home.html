@@ -10,6 +10,10 @@
   <div id="kanban-root">
     {% include "partials/kanban.html" %}
   </div>
+  <script
+    src="https://cdn.socket.io/4.7.5/socket.io.min.js"
+    crossorigin="anonymous"
+  ></script>
   <script>
     const kanbanRoot = document.getElementById("kanban-root");
     const scrollMessagesToBottom = () => {
@@ -17,6 +21,54 @@
         container.scrollTop = container.scrollHeight;
       });
     };
+    const updateTaskMessages = async (taskId) => {
+      const response = await fetch(`/tasks/${taskId}/messages`);
+      if (!response.ok) {
+        return;
+      }
+      const payload = await response.json();
+      const card = kanbanRoot.querySelector(`[data-task-id="${taskId}"]`);
+      if (!card || payload.error) {
+        return;
+      }
+      const messagesContainer = card.querySelector(".js-messages-scroll");
+      const messageCount = card.querySelector(".js-message-count");
+      const authorCount = card.querySelector(".js-author-count");
+      if (messagesContainer && payload.messages_html !== undefined) {
+        messagesContainer.innerHTML = payload.messages_html;
+      }
+      if (messageCount && payload.message_count !== undefined) {
+        messageCount.textContent = payload.message_count;
+      }
+      if (authorCount && payload.author_count !== undefined) {
+        authorCount.textContent = payload.author_count;
+      }
+      scrollMessagesToBottom();
+    };
+    const moveTaskCard = (taskId, statusId) => {
+      const card = kanbanRoot.querySelector(`[data-task-id="${taskId}"]`);
+      const target = kanbanRoot.querySelector(
+        `.js-status-tasks[data-status-id="${statusId}"]`
+      );
+      if (!card || !target) {
+        return;
+      }
+      if (card.parentElement === target) {
+        return;
+      }
+      target.appendChild(card);
+    };
+    if (window.io) {
+      const socket = window.io();
+      socket.on("task_status_changed", (payload) => {
+        if (!payload) {
+          return;
+        }
+        updateTaskMessages(payload.task_id).finally(() => {
+          moveTaskCard(payload.task_id, payload.status_id);
+        });
+      });
+    }
     const initialScroll = () => {
       requestAnimationFrame(scrollMessagesToBottom);
     };
