@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import os
 
+import inspect
+import os
+
 from agents import Agent, Runner
 from agents.models.openai_provider import OpenAIProvider
 from mcp.server.fastmcp import FastMCP
@@ -29,7 +32,15 @@ async def run_codex(
         raise ValueError("Не задан API_KEY в настройках.")
     if not model:
         raise ValueError("Не задан MODEL в настройках.")
-    provider = OpenAIProvider(api_key=api_key)
+    timeout = float(os.getenv("LLM_TIMEOUT_SEC", "120"))
+    max_retries = int(os.getenv("LLM_MAX_RETRIES", "4"))
+    provider_kwargs = {"api_key": api_key}
+    provider_params = inspect.signature(OpenAIProvider).parameters
+    if "timeout" in provider_params:
+        provider_kwargs["timeout"] = timeout
+    if "max_retries" in provider_params:
+        provider_kwargs["max_retries"] = max_retries
+    provider = OpenAIProvider(**provider_kwargs)
     sandbox_note = (
         "Рабочая папка: sandbox. Для файлов используй list_files/read_file/write_file/make_dir. "
         "Для коммитов используй run_git."

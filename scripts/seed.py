@@ -87,6 +87,8 @@ def main() -> None:
             working_status_id=status_by_name["Тестирование"].id,
             success_status_id=status_by_name["Готово"].id,
             error_status_id=status_by_name["Бэклог"].id,
+            acceptance_criteria="- задача относится к тестированию\n- код по задаче есть",
+            transfer_criteria="- тесты по задаче выполнены\n- результат проверки описан в ответе",
         )
         session.add(tester)
         session.flush()

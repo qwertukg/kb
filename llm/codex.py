@@ -3,11 +3,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 import os
 import sys
+import time
 
 import anyio
 
 from app.models import Agent
 from app.services import settings as settings_service
+
+LLM_TIMEOUT_SEC = int(os.getenv("LLM_TIMEOUT_SEC", "120"))
+LLM_MAX_RETRIES = int(os.getenv("LLM_MAX_RETRIES", "4"))
+LLM_RETRY_BACKOFF_SEC = float(os.getenv("LLM_RETRY_BACKOFF_SEC", "2"))
 
 
 @dataclass(slots=True)
@@ -90,11 +95,17 @@ def _extract_tool_text(result) -> str:
         text = structured.get("text")
         if isinstance(text, str) and text.strip():
             return text.strip()
+    if structured is not None:
+        print(f"[codex] structuredContent={structured}")
     parts: list[str] = []
     for block in result.content or []:
         text = getattr(block, "text", None)
         if isinstance(text, str) and text.strip():
             parts.append(text)
+        elif text is not None:
+            print(f"[codex] empty text block: {text!r}")
+        else:
+            print(f"[codex] non-text block: {block!r}")
     return "\n".join(parts).strip()
 
 
@@ -123,24 +134,38 @@ def _run_mcp_codex(
         async with stdio_client(server_params) as streams:
             async with ClientSession(*streams) as session:
                 await session.initialize()
-                result = await session.call_tool(
-                    "run_codex",
-                    {
-                        "prompt": prompt,
-                        "instructions": instructions or "",
-                        "api_key": api_key,
-                        "model": model,
-                        "task_id": task_id,
-                        "status_id": status_id,
-                    },
-                )
+                with anyio.fail_after(LLM_TIMEOUT_SEC):
+                    result = await session.call_tool(
+                        "run_codex",
+                        {
+                            "prompt": prompt,
+                            "instructions": instructions or "",
+                            "api_key": api_key,
+                            "model": model,
+                            "task_id": task_id,
+                            "status_id": status_id,
+                        },
+                    )
         if getattr(result, "isError", False):
             message = _extract_tool_text(result) or "Codex MCP вернул ошибку."
             raise RuntimeError(message)
         response_text = _extract_tool_text(result)
         return response_text or None
 
-    return anyio.run(_run)
+    last_error: Exception | None = None
+    for attempt in range(LLM_MAX_RETRIES + 1):
+        try:
+            return anyio.run(_run)
+        except Exception as exc:
+            last_error = exc
+            if attempt < LLM_MAX_RETRIES:
+                time.sleep(LLM_RETRY_BACKOFF_SEC * (attempt + 1))
+                continue
+            raise
+
+    if last_error:
+        raise last_error
+    return None
 
 
 def _extract_agent_status(response: str) -> tuple[str, bool | None]:
@@ -195,6 +220,7 @@ def run_task_prompt(
         return None, False, error_message
 
     if not response:
+        print(f"[codex] empty response for agent_id={agent.id}")
         return None, False, "Codex-agent не вернул результат."
 
     cleaned_response, is_completed = _extract_agent_status(response)
