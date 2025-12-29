@@ -31,6 +31,21 @@
       if (!card || payload.error) {
         return;
       }
+      const header = card.querySelector(".js-task-header");
+      if (header) {
+        header.querySelectorAll(".js-task-agent").forEach((item) => item.remove());
+        if (payload.agent_name) {
+          const agentBadge = document.createElement("span");
+          agentBadge.className = "badge js-task-agent";
+          agentBadge.style.backgroundColor = payload.agent_color || "#6c757d";
+          agentBadge.style.fontSize = "0.7rem";
+          agentBadge.textContent = payload.agent_name;
+          const wrapper = document.createElement("div");
+          wrapper.className = "js-task-agent";
+          wrapper.appendChild(agentBadge);
+          header.appendChild(wrapper);
+        }
+      }
       const messagesContainer = card.querySelector(".js-messages-scroll");
       const messageCount = card.querySelector(".js-message-count");
       const authorCount = card.querySelector(".js-author-count");
@@ -57,6 +72,73 @@
         return;
       }
       target.appendChild(card);
+      card.dataset.statusId = statusId;
+    };
+    const setTaskSpinner = (taskId, isActive) => {
+      const card = kanbanRoot.querySelector(`[data-task-id="${taskId}"]`);
+      if (!card) {
+        return;
+      }
+      const spinner = card.querySelector(".js-llm-spinner");
+      if (!spinner) {
+        return;
+      }
+      spinner.classList.toggle("d-none", !isActive);
+    };
+    const updateTaskStatus = async (taskId, statusId) => {
+      const response = await fetch(`/tasks/${taskId}/status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status_id: statusId }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || "Ошибка обновления статуса.");
+      }
+    };
+    const handleDragStart = (event) => {
+      const card = event.target.closest(".js-task-card");
+      if (!card || !event.dataTransfer) {
+        return;
+      }
+      event.dataTransfer.setData("text/plain", card.dataset.taskId);
+      event.dataTransfer.effectAllowed = "move";
+      setTimeout(() => {
+        card.classList.add("is-dragging");
+      }, 0);
+    };
+    const handleDrop = async (event) => {
+      event.preventDefault();
+      const target = event.target.closest(".js-status-tasks");
+      if (!target) {
+        return;
+      }
+      const statusId = target.dataset.statusId;
+      const taskId = event.dataTransfer?.getData("text/plain");
+      if (!taskId || !statusId) {
+        return;
+      }
+      const card = kanbanRoot.querySelector(`[data-task-id="${taskId}"]`);
+      const previousStatusId = card?.dataset?.statusId;
+      moveTaskCard(taskId, statusId);
+      try {
+        await updateTaskStatus(taskId, statusId);
+      } catch (error) {
+        if (previousStatusId) {
+          moveTaskCard(taskId, previousStatusId);
+        }
+        alert(error.message || "Не удалось обновить статус.");
+      } finally {
+        if (card) {
+          card.classList.remove("is-dragging");
+        }
+      }
+    };
+    const handleDragOver = (event) => {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
     };
     if (window.io) {
       const socket = window.io();
@@ -68,6 +150,18 @@
           moveTaskCard(payload.task_id, payload.status_id);
         });
       });
+      socket.on("task_llm_started", (payload) => {
+        if (!payload) {
+          return;
+        }
+        setTaskSpinner(payload.task_id, true);
+      });
+      socket.on("task_llm_finished", (payload) => {
+        if (!payload) {
+          return;
+        }
+        setTaskSpinner(payload.task_id, false);
+      });
     }
     const initialScroll = () => {
       requestAnimationFrame(scrollMessagesToBottom);
@@ -77,5 +171,51 @@
     } else {
       initialScroll();
     }
+    const clearDragOver = () => {
+      kanbanRoot.querySelectorAll(".js-status-tasks.drag-over").forEach((item) => {
+        item.classList.remove("drag-over");
+      });
+    };
+    kanbanRoot.addEventListener("dragstart", handleDragStart);
+    kanbanRoot.addEventListener("dragend", (event) => {
+      const card = event.target.closest(".js-task-card");
+      if (card) {
+        card.classList.remove("is-dragging");
+      }
+      clearDragOver();
+    });
+    kanbanRoot.addEventListener("dragover", (event) => {
+      const target = event.target.closest(".js-status-tasks");
+      if (!target) {
+        return;
+      }
+      handleDragOver(event);
+      clearDragOver();
+      target.classList.add("drag-over");
+    });
+    kanbanRoot.addEventListener("dragleave", (event) => {
+      const target = event.target.closest(".js-status-tasks");
+      if (!target) {
+        return;
+      }
+      target.classList.remove("drag-over");
+    });
+    kanbanRoot.addEventListener("drop", (event) => {
+      const target = event.target.closest(".js-status-tasks");
+      if (!target) {
+        return;
+      }
+      target.classList.remove("drag-over");
+      handleDrop(event);
+    });
   </script>
+  <style>
+    .js-status-tasks.drag-over {
+      outline: 2px dashed #adb5bd;
+      outline-offset: 4px;
+    }
+    .js-task-card.is-dragging {
+      opacity: 0;
+    }
+  </style>
 {% endblock %}

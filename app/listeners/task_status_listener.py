@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import threading
-
 from sqlalchemy import event
 from sqlalchemy.orm import Session, attributes
 
@@ -33,15 +31,14 @@ def _run_task_status_observers(session: Session) -> None:
             "task_status_changed",
             {"task_id": task_id, "status_id": status_id},
         )
-        threading.Thread(
-            target=_run_llm_for_task,
-            args=(task_id,),
-            daemon=True,
-        ).start()
+        socketio.start_background_task(_run_llm_for_task, task_id)
 
 
 def _run_llm_for_task(task_id: int) -> None:
     try:
+        socketio.emit("task_llm_started", {"task_id": task_id})
         tasks_service.sent_to_llm(task_id)
+        socketio.emit("task_llm_finished", {"task_id": task_id})
     except Exception as exc:  # pragma: no cover - фоновые ошибки
+        socketio.emit("task_llm_finished", {"task_id": task_id})
         print(f"[listener] Ошибка LLM для задачи {task_id}: {exc}")

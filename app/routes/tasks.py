@@ -135,6 +135,7 @@ def task_messages(task_id: int):
 
     ordered_messages = sorted(task.messages, key=lambda message: message.id)
     author_ids = {message.author_id for message in ordered_messages}
+    assigned_agent = tasks_service.get_task_assigned_agent(task.id)
     messages_html = render_template(
         "tasks/messages.html",
         messages=ordered_messages,
@@ -144,5 +145,17 @@ def task_messages(task_id: int):
             "messages_html": messages_html,
             "message_count": len(ordered_messages),
             "author_count": len(author_ids),
+            "agent_name": assigned_agent.name if assigned_agent else None,
+            "agent_color": task.status.color if task.status else None,
         }
     )
+
+
+@bp.post("/tasks/<int:task_id>/status")
+def update_task_status(task_id: int):
+    data = request.get_json(silent=True) or {}
+    status_id = data.get("status_id", "")
+    task, error = tasks_service.update_task_status(task_id, str(status_id))
+    if error:
+        return jsonify({"error": error}), 400
+    return jsonify({"ok": True, "task_id": task.id, "status_id": task.status_id})

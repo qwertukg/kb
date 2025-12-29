@@ -27,21 +27,21 @@
                 </div>
                 <div class="card-body">
                   {% set assigned_tasks = tasks_by_status.get(status.id, []) %}
-                  <div class="d-grid gap-3 js-status-tasks" data-status-id="{{ status.id }}">
+                  <div class="d-grid gap-3 js-status-tasks" data-status-id="{{ status.id }}" style="min-height: 220px;">
                     {% if assigned_tasks %}
                       {% for task, agent in assigned_tasks %}
-                        <div class="card" data-task-id="{{ task.id }}">
-                          <div class="card-header py-2">
-                            <div>
-                              <a class="small" href="{{ url_for('roles.edit_task', task_id=task.id) }}">#{{ task.id }}</a>
-                              <span class="fw-semibold small">{{ task.title or "—" }}</span>
-                            </div>
-                            {% if agent %}
-                              <div>
-                                <span class="badge" style="background-color: {{ status.color }}; font-size: 0.7rem;">{{ agent.name }}</span>
-                              </div>
-                            {% endif %}
+                        <div class="card js-task-card" data-task-id="{{ task.id }}" data-status-id="{{ status.id }}" draggable="true">
+                        <div class="card-header py-2 js-task-header">
+                          <div>
+                            <a class="small" href="{{ url_for('roles.edit_task', task_id=task.id) }}">#{{ task.id }}</a>
+                            <span class="fw-semibold small">{{ task.title or "—" }}</span>
                           </div>
+                          {% if agent %}
+                            <div>
+                              <span class="badge" style="background-color: {{ status.color }}; font-size: 0.7rem;">{{ agent.name }}</span>
+                            </div>
+                          {% endif %}
+                        </div>
                           <div class="card-body p-2 js-messages-scroll" data-task-id="{{ task.id }}" style="height: 140px; overflow-y: auto;">
                             {% set ordered_messages = task.messages | sort(attribute='id') %}
                             {% set messages = ordered_messages %}
@@ -49,14 +49,19 @@
                           </div>
                           {% set message_count = ordered_messages | length %}
                           {% set author_ids = ordered_messages | map(attribute='author_id') | unique | list %}
-                          <div class="card-footer d-flex justify-content-end gap-3 py-2">
-                            <span class="d-inline-flex align-items-center gap-1">
-                              <i class="bi bi-chat-left-text"></i>
-                              <span class="small text-muted js-message-count">{{ message_count }}</span>
+                          <div class="card-footer d-flex justify-content-between align-items-center gap-3 py-2">
+                            <span class="js-llm-spinner d-none">
+                              <span class="spinner-border spinner-border-sm text-secondary" role="status" aria-hidden="true"></span>
                             </span>
-                            <span class="d-inline-flex align-items-center gap-1">
-                              <i class="bi bi-people"></i>
-                              <span class="small text-muted js-author-count">{{ author_ids | length }}</span>
+                            <span class="ms-auto d-inline-flex align-items-center gap-3">
+                              <span class="d-inline-flex align-items-center gap-1">
+                                <i class="bi bi-chat-left-text"></i>
+                                <span class="small text-muted js-message-count">{{ message_count }}</span>
+                              </span>
+                              <span class="d-inline-flex align-items-center gap-1">
+                                <i class="bi bi-people"></i>
+                                <span class="small text-muted js-author-count">{{ author_ids | length }}</span>
+                              </span>
                             </span>
                           </div>
                         </div>

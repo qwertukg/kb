@@ -66,12 +66,48 @@ def get_task_with_messages(task_id: int) -> Task | None:
     return (
         session.execute(
             select(Task)
-            .options(selectinload(Task.messages).selectinload(Message.author))
+            .options(
+                selectinload(Task.messages).selectinload(Message.author),
+                selectinload(Task.status),
+            )
             .where(Task.id == task_id)
         )
         .scalars()
         .first()
     )
+
+
+def get_task_assigned_agent(task_id: int) -> Agent | None:
+    session = SessionLocal()
+    return (
+        session.execute(
+            select(Agent).where(Agent.current_task_id == task_id).order_by(Agent.id)
+        )
+        .scalars()
+        .first()
+    )
+
+
+def update_task_status(task_id: int, status_id: str) -> tuple[Task | None, str | None]:
+    session = SessionLocal()
+    task = session.get(Task, task_id)
+    if not task:
+        return None, "Задача не найдена."
+
+    if not status_id:
+        return None, "Статус обязателен."
+
+    status = session.get(Status, int(status_id))
+    if not status or status.project_id != task.project_id:
+        return None, "Статус должен принадлежать проекту задачи."
+
+    if task.status_id == status.id:
+        return task, None
+
+    task.status_id = status.id
+    _sync_task_assignment(session, task)
+    session.commit()
+    return task, None
 
 
 def get_form_data() -> tuple[list[Project], list[Status], list[Agent], dict[int, list[str]]]:
