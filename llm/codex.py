@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import os
+import re
 import sys
 import time
 
@@ -169,21 +170,13 @@ def _run_mcp_codex(
 
 
 def _extract_agent_status(response: str) -> tuple[str, bool | None]:
-    lines = response.splitlines()
-    status_line_index = None
-    status_value = None
-    for index in range(len(lines) - 1, -1, -1):
-        line = lines[index].strip()
-        if not line:
-            continue
-        if "STATUS:" not in line.upper():
-            continue
-        status_line_index = index
-        status_value = line.split(":", 1)[-1].strip().upper()
-        break
-    if status_line_index is None or status_value is None:
+    matches = list(re.finditer(r"STATUS:\s*(SUCCESS|ERROR)", response, re.IGNORECASE))
+    if not matches:
         return response, None
-    cleaned = "\n".join(line for i, line in enumerate(lines) if i != status_line_index).strip()
+    last_match = matches[-1]
+    status_value = last_match.group(1).upper()
+    cleaned = (response[: last_match.start()] + response[last_match.end() :]).strip()
+    cleaned = re.sub(r"\n\s*\n", "\n", cleaned).strip()
     if status_value == "SUCCESS":
         return cleaned, True
     if status_value == "ERROR":
