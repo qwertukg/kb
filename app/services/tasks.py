@@ -167,7 +167,6 @@ def _handle_llm_error(session, task: Task, agent: Agent, error_message: str) -> 
 
 def sent_to_llm(task_id: int) -> tuple[Task | None, str | None]:
     session = SessionLocal.session_factory()
-    session.info["skip_status_listener"] = True
     task = session.get(Task, task_id)
     if not task:
         return None, "Задача не найдена."

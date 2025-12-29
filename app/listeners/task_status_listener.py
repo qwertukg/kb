@@ -9,8 +9,6 @@ from app.services import tasks as tasks_service
 
 @event.listens_for(Session, "after_flush")
 def _track_task_status_changes(session: Session, flush_context) -> None:
-    if session.info.get("skip_status_listener"):
-        return
     task_ids = session.info.setdefault("status_change_task_ids", set())
     for obj in session.dirty:
         if not isinstance(obj, Task):
@@ -23,9 +21,6 @@ def _track_task_status_changes(session: Session, flush_context) -> None:
 
 @event.listens_for(Session, "after_commit")
 def _run_task_status_observers(session: Session) -> None:
-    if session.info.get("skip_status_listener"):
-        session.info.pop("status_change_task_ids", None)
-        return
     task_ids = session.info.pop("status_change_task_ids", set())
     if not task_ids:
         return
