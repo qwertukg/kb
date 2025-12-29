@@ -6,6 +6,7 @@ from sqlalchemy.orm import selectinload
 
 from ..db import SessionLocal
 from llm.codex import run_task_prompt
+from app.socketio import socketio
 from ..models import Agent, Message, Parameter, Project, Status, Task
 
 
@@ -220,6 +221,13 @@ def sent_to_llm(task_id: int) -> tuple[Task | None, str | None]:
     if not task:
         return None, "Задача не найдена."
 
+    socketio.emit("task_llm_started", {"task_id": task_id})
+
+    if session.execute(select(Agent).where(Agent.current_task_id == task.id)).scalar_one_or_none() is None:
+        _sync_task_assignment(session, task)
+        session.commit()
+        session.refresh(task)
+
     last_message = (
         session.execute(
             select(Message).where(Message.task_id == task.id).order_by(Message.id.desc())
@@ -228,6 +236,7 @@ def sent_to_llm(task_id: int) -> tuple[Task | None, str | None]:
         .first()
     )
     if not last_message:
+        socketio.emit("task_llm_finished", {"task_id": task_id})
         return task, "В задаче нет сообщений для отправки."
 
     agent = (
@@ -240,6 +249,7 @@ def sent_to_llm(task_id: int) -> tuple[Task | None, str | None]:
         .first()
     )
     if not agent:
+        socketio.emit("task_llm_finished", {"task_id": task_id})
         return task, "Нет назначенного агента для задачи."
 
     api_key = session.execute(
@@ -259,19 +269,23 @@ def sent_to_llm(task_id: int) -> tuple[Task | None, str | None]:
     if error_message:
         _handle_llm_error(session, task, agent, error_message)
         session.commit()
+        socketio.emit("task_llm_finished", {"task_id": task_id})
         return task, error_message
 
     if response and is_completed:
         _handle_llm_success(session, task, agent, response)
         session.commit()
+        socketio.emit("task_llm_finished", {"task_id": task_id})
         return task, None
 
     if response:
         _handle_llm_error(session, task, agent, response)
         session.commit()
+        socketio.emit("task_llm_finished", {"task_id": task_id})
         return task, response
 
     error_message = "Codex-agent не вернул результат."
     _handle_llm_error(session, task, agent, error_message)
     session.commit()
+    socketio.emit("task_llm_finished", {"task_id": task_id})
     return task, error_message

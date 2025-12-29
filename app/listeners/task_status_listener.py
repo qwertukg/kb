@@ -36,9 +36,6 @@ def _run_task_status_observers(session: Session) -> None:
 
 def _run_llm_for_task(task_id: int) -> None:
     try:
-        socketio.emit("task_llm_started", {"task_id": task_id})
         tasks_service.sent_to_llm(task_id)
-        socketio.emit("task_llm_finished", {"task_id": task_id})
     except Exception as exc:  # pragma: no cover - фоновые ошибки
-        socketio.emit("task_llm_finished", {"task_id": task_id})
         print(f"[listener] Ошибка LLM для задачи {task_id}: {exc}")
