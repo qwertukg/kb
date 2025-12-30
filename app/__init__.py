@@ -11,6 +11,7 @@ from llm import codex as codex_llm
 from .models import Project
 from .routes import bp
 from .api import api_bp
+from .api.swagger import build_swagger_template
 from .socketio import socketio
 from .services import settings as settings_service
 
@@ -44,10 +45,7 @@ def create_app() -> Flask:
                 }
             ],
         },
-        template={
-            "swagger": "2.0",
-            "info": {"title": "KB Admin API", "version": "1.0.0"},
-        },
+        template=build_swagger_template(),
     )
     socketio.init_app(app)
     codex_llm.write_codex_config(settings_service.get_settings().config)

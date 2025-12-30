@@ -110,6 +110,14 @@
                   Агенты
                 </a>
               </li>
+              <li class="nav-item mt-3">
+                <span class="text-uppercase text-muted small">API</span>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.path.startswith('/api/docs') %}active{% endif %}" href="{{ url_for('flasgger.apidocs') }}">
+                  Swagger
+                </a>
+              </li>
             </ul>
           </div>
         </nav>
