@@ -101,11 +101,11 @@ def task_to_dict(task, include_messages: bool = False) -> dict[str, object]:
     return payload
 
 
-def parameter_to_dict(parameter) -> dict[str, object]:
+def settings_to_dict(settings) -> dict[str, object]:
     return {
-        "id": parameter.id,
-        "api_key": parameter.api_key,
-        "model": parameter.model,
-        "instructions": parameter.instructions,
-        "config": parameter.config,
+        "id": settings.id,
+        "api_key": settings.api_key,
+        "model": settings.model,
+        "instructions": settings.instructions,
+        "config": settings.config,
     }

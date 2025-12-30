@@ -4,7 +4,7 @@ from flask import jsonify, request
 
 from ..services import settings as settings_service
 from . import api_bp
-from .utils import clean_str
+from .utils import clean_str, settings_to_dict
 
 
 @api_bp.get("/settings")
@@ -17,8 +17,8 @@ def api_get_settings():
       200:
         description: OK
     """
-    values = settings_service.get_settings_values()
-    return jsonify(values)
+    settings = settings_service.get_settings()
+    return jsonify(settings_to_dict(settings))
 
 
 @api_bp.put("/settings")
@@ -38,6 +38,10 @@ def api_update_settings():
         description: OK
     """
     data = request.get_json(silent=True) or {}
-    values = {key: clean_str(data.get(key)) for key in settings_service.SETTINGS_KEYS}
-    settings_service.update_settings(values)
-    return jsonify(values)
+    settings = settings_service.update_settings(
+        clean_str(data.get("api_key")),
+        clean_str(data.get("model")),
+        clean_str(data.get("instructions")),
+        clean_str(data.get("config")),
+    )
+    return jsonify(settings_to_dict(settings))

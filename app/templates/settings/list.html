@@ -11,32 +11,32 @@
     <div class="card-body">
       <form method="post" action="{{ url_for('roles.update_settings') }}">
         <div class="mb-3">
-          <label class="form-label" for="API_KEY">API ключ</label>
+          <label class="form-label" for="api_key">API ключ</label>
           <input
             class="form-control"
-            id="API_KEY"
-            name="API_KEY"
+            id="api_key"
+            name="api_key"
             type="text"
-            value="{{ settings.API_KEY }}"
+            value="{{ settings.api_key }}"
           >
         </div>
         <div class="mb-3">
-          <label class="form-label" for="MODEL">Модель</label>
+          <label class="form-label" for="model">Модель</label>
           <input
             class="form-control"
-            id="MODEL"
-            name="MODEL"
+            id="model"
+            name="model"
             type="text"
-            value="{{ settings.MODEL }}"
+            value="{{ settings.model }}"
           >
         </div>
         <div class="mb-3">
-          <label class="form-label" for="INSTRUCTIONS">Инструкции</label>
-          <textarea class="form-control" id="INSTRUCTIONS" name="INSTRUCTIONS" rows="6">{{ settings.INSTRUCTIONS }}</textarea>
+          <label class="form-label" for="instructions">Инструкции</label>
+          <textarea class="form-control" id="instructions" name="instructions" rows="6">{{ settings.instructions }}</textarea>
         </div>
         <div class="mb-3">
-          <label class="form-label" for="CONFIG">Конфигурация</label>
-          <textarea class="form-control" id="CONFIG" name="CONFIG" rows="6">{{ settings.CONFIG }}</textarea>
+          <label class="form-label" for="config">Конфигурация</label>
+          <textarea class="form-control" id="config" name="config" rows="6">{{ settings.config }}</textarea>
         </div>
         <button class="btn btn-primary" type="submit">Сохранить</button>
       </form>

@@ -107,9 +107,8 @@ def create_agent(
     )
     session.add(agent)
     session.commit()
-    api_key = settings_service.get_parameter_value("API_KEY")
-    model = settings_service.get_parameter_value("MODEL")
-    register_codex_agent(agent, api_key, model)
+    settings = settings_service.get_settings()
+    register_codex_agent(agent, settings.api_key, settings.model)
     return agent, None
 
 
@@ -172,9 +171,8 @@ def update_agent(
     if agent.current_task_id and previous_working_status_id != working_status.id:
         agent.current_task_id = None
     session.commit()
-    api_key = settings_service.get_parameter_value("API_KEY")
-    model = settings_service.get_parameter_value("MODEL")
-    register_codex_agent(agent, api_key, model)
+    settings = settings_service.get_settings()
+    register_codex_agent(agent, settings.api_key, settings.model)
     return agent, None
 
 

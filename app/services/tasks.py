@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 from ..db import SessionLocal
 from llm.codex import run_task_prompt
 from app.socketio import socketio
-from ..models import Agent, Message, Parameter, Project, Status, Task
+from ..models import Agent, Message, Project, Settings, Status, Task
 
 _RUNNING_TASK_IDS: set[int] = set()
 _RUNNING_TASK_IDS_LOCK = Lock()
@@ -276,8 +276,9 @@ def sent_to_llm(task_id: int) -> tuple[Task | None, str | None]:
         agent_status_id = agent.working_status_id
         agent_status_color = agent.working_status.color if agent.working_status else None
 
-        api_key = session.execute(select(Parameter.api_key)).scalars().first()
-        model = session.execute(select(Parameter.model)).scalars().first()
+        settings = session.execute(select(Settings)).scalars().first()
+        api_key = settings.api_key if settings else None
+        model = settings.model if settings else None
         response, is_completed, error_message = run_task_prompt(
             agent,
             last_message.text,

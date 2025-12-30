@@ -50,7 +50,7 @@ def create_app() -> Flask:
         },
     )
     socketio.init_app(app)
-    codex_llm.write_codex_config(settings_service.get_parameter_value("CONFIG"))
+    codex_llm.write_codex_config(settings_service.get_settings().config)
     from .listeners import task_status_listener  # noqa: F401
 
     @app.context_processor

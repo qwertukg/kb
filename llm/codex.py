@@ -47,7 +47,7 @@ class CodexAgent:
 
 def build_codex_instructions(agent: Agent) -> str:
     parts: list[str] = []
-    base_instructions = settings_service.get_parameter_value("INSTRUCTIONS")
+    base_instructions = settings_service.get_settings().instructions
     if base_instructions:
         parts.append(base_instructions.strip())
     if agent.role and agent.role.instruction:

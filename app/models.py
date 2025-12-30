@@ -86,8 +86,8 @@ class Column(Base):
     status: Mapped[Status] = relationship(back_populates="column")
 
 
-class Parameter(Base):
-    __tablename__ = "parameters"
+class Settings(Base):
+    __tablename__ = "settings"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     api_key: Mapped[str] = mapped_column(Text, nullable=False)
