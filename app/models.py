@@ -90,8 +90,10 @@ class Parameter(Base):
     __tablename__ = "parameters"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    key: Mapped[str] = mapped_column(String(120), nullable=False, unique=True)
-    value: Mapped[str] = mapped_column(Text, nullable=False)
+    api_key: Mapped[str] = mapped_column(Text, nullable=False)
+    model: Mapped[str] = mapped_column(Text, nullable=False)
+    instructions: Mapped[str] = mapped_column(Text, nullable=False)
+    config: Mapped[str] = mapped_column(Text, nullable=False)
 
 
 class Task(Base):

@@ -276,12 +276,8 @@ def sent_to_llm(task_id: int) -> tuple[Task | None, str | None]:
         agent_status_id = agent.working_status_id
         agent_status_color = agent.working_status.color if agent.working_status else None
 
-        api_key = session.execute(
-            select(Parameter.value).where(Parameter.key == "API_KEY")
-        ).scalar_one_or_none()
-        model = session.execute(
-            select(Parameter.value).where(Parameter.key == "MODEL")
-        ).scalar_one_or_none()
+        api_key = session.execute(select(Parameter.api_key)).scalars().first()
+        model = session.execute(select(Parameter.model)).scalars().first()
         response, is_completed, error_message = run_task_prompt(
             agent,
             last_message.text,

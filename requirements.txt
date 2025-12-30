@@ -1,5 +1,6 @@
 Flask==3.0.3
 Flask-SocketIO==5.3.6
+flasgger==0.9.7.1
 SQLAlchemy==2.0.32
 alembic==1.13.2
 openai-agents==0.6.4

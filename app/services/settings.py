@@ -6,11 +6,17 @@ from ..db import SessionLocal
 from ..models import Parameter
 
 SETTINGS_KEYS = ("API_KEY", "MODEL", "INSTRUCTIONS", "CONFIG")
+_KEY_FIELD_MAP = {
+    "API_KEY": "api_key",
+    "MODEL": "model",
+    "INSTRUCTIONS": "instructions",
+    "CONFIG": "config",
+}
 
 
 def list_parameters() -> list[Parameter]:
     session = SessionLocal()
-    return session.execute(select(Parameter).order_by(Parameter.key)).scalars().all()
+    return session.execute(select(Parameter).order_by(Parameter.id)).scalars().all()
 
 
 def get_parameter(parameter_id: int) -> Parameter | None:
@@ -21,53 +27,72 @@ def get_parameter(parameter_id: int) -> Parameter | None:
 def get_parameter_value(key: str) -> str | None:
     if not key:
         return None
+    field_name = _KEY_FIELD_MAP.get(key)
+    if not field_name:
+        return None
     session = SessionLocal.session_factory()
     try:
-        return session.execute(
-            select(Parameter.value).where(Parameter.key == key)
-        ).scalar_one_or_none()
+        row = session.execute(select(Parameter)).scalars().first()
+        if not row:
+            return None
+        return getattr(row, field_name)
     finally:
         session.close()
 
 
 def get_settings_values(keys: tuple[str, ...] = SETTINGS_KEYS) -> dict[str, str]:
     session = SessionLocal()
-    parameters = (
-        session.execute(select(Parameter).where(Parameter.key.in_(keys))).scalars().all()
-    )
-    values = {parameter.key: parameter.value for parameter in parameters}
-    return {key: values.get(key, "") for key in keys}
+    row = session.execute(select(Parameter)).scalars().first()
+    if not row:
+        return {key: "" for key in keys}
+    values = {}
+    for key in keys:
+        field_name = _KEY_FIELD_MAP.get(key)
+        values[key] = getattr(row, field_name) if field_name else ""
+    return values
 
 
 def update_settings(values: dict[str, str], keys: tuple[str, ...] = SETTINGS_KEYS) -> None:
     session = SessionLocal()
-    parameters = (
-        session.execute(select(Parameter).where(Parameter.key.in_(keys))).scalars().all()
-    )
-    existing = {parameter.key: parameter for parameter in parameters}
+    row = session.execute(select(Parameter)).scalars().first()
+    if not row:
+        row = Parameter(
+            api_key="",
+            model="",
+            instructions="",
+            config="",
+        )
+        session.add(row)
+        session.flush()
     for key in keys:
-        value = values.get(key, "")
-        parameter = existing.get(key)
-        if parameter:
-            parameter.value = value
-        else:
-            session.add(Parameter(key=key, value=value))
+        field_name = _KEY_FIELD_MAP.get(key)
+        if not field_name:
+            continue
+        setattr(row, field_name, values.get(key, ""))
     session.commit()
 
 
 def create_parameter(key: str, value: str) -> tuple[Parameter | None, str | None]:
     if not key or not value:
         return None, "Ключ и значение обязательны."
+    field_name = _KEY_FIELD_MAP.get(key)
+    if not field_name:
+        return None, "Неизвестный ключ."
 
     session = SessionLocal()
-    exists = session.execute(select(Parameter).where(Parameter.key == key)).scalar_one_or_none()
-    if exists:
-        return None, "Параметр с таким ключом уже существует."
-
-    parameter = Parameter(key=key, value=value)
-    session.add(parameter)
+    row = session.execute(select(Parameter)).scalars().first()
+    if not row:
+        row = Parameter(
+            api_key="",
+            model="",
+            instructions="",
+            config="",
+        )
+        session.add(row)
+        session.flush()
+    setattr(row, field_name, value)
     session.commit()
-    return parameter, None
+    return row, None
 
 
 def update_parameter(
@@ -80,18 +105,11 @@ def update_parameter(
 
     if not key or not value:
         return None, "Ключ и значение обязательны."
+    field_name = _KEY_FIELD_MAP.get(key)
+    if not field_name:
+        return None, "Неизвестный ключ."
 
-    exists = (
-        session.execute(
-            select(Parameter).where(Parameter.key == key, Parameter.id != parameter_id)
-        )
-        .scalar_one_or_none()
-    )
-    if exists:
-        return None, "Параметр с таким ключом уже существует."
-
-    parameter.key = key
-    parameter.value = value
+    setattr(parameter, field_name, value)
     session.commit()
     return parameter, None
 
